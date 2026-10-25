@@ -1,0 +1,122 @@
+# BUSify: Data Dictionary & Database Schema
+
+This document details the relational schemas, column constraints, privacy safeguards, and indices implemented in BUSify.
+
+---
+
+## 1. Entity Relationship Diagram (Conceptual)
+
+```text
+  ┌──────────────┐                 ┌────────────────────┐
+  │    stops     │◀───[M:1]────────│   registrations    │
+  │ stop_id (PK) │                 │  reg_id (PK)       │
+  │ area_id      │                 │  student_hash      │
+  └──────┬───────┘                 └────────────────────┘
+         │
+         │[1:M]
+         ▼
+  ┌──────────────┐                 ┌────────────────────┐
+  │  demand_obs  │                 │      calendar      │
+  │ obs_id (PK)  │                 │    date (PK)       │
+  │ stop_id (FK) │                 │  is_holiday (bool) │
+  │ date (FK)────┼─────────────────│  exam_flag (bool)  │
+  └──────────────┘                 └────────────────────┘
+                                              ▲
+  ┌──────────────┐                            │
+  │    buses     │                            │
+  │ bus_id (PK)  │                            │
+  │ seats (int)  │                            │
+  └──────┬───────┘                            │
+         │                                    │
+         │[1:M]                               │
+         ▼                                    │
+  ┌──────────────┐                            │
+  │    plans     │                            │
+  │ plan_id (PK) │                            │
+  │ bus_id (FK)  │                            │
+  │ date ────────┼────────────────────────────┘
+  │ route_json   │
+  └──────────────┘
+```
+
+---
+
+## 2. Table Specifications
+
+### A. `stops`
+Stores physical pickup points, geographic coordinates, and regional zone assignments.
+
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `stop_id` | `VARCHAR(32)` | **PRIMARY KEY** | Unique stop identifier (e.g., `STOP-014`). |
+| `name` | `VARCHAR(128)` | **NOT NULL** | Human-readable stop landmark (e.g., `Vengamedu Bus Shelter`). |
+| `lat` | `FLOAT` | **NOT NULL** | WGS84 Latitude coordinate. |
+| `lon` | `FLOAT` | **NOT NULL** | WGS84 Longitude coordinate. |
+| `area_id` | `VARCHAR(32)` | **NOT NULL**, **INDEXED** | Assigned regional planning zone (e.g., `AREA-A`). |
+| `sequence_order` | `INTEGER` | Default `0` | Default geographic sequence index within the zone. |
+
+---
+
+### B. `buses`
+Catalog of college-owned transit fleet vehicles and capacities.
+
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `bus_id` | `VARCHAR(32)` | **PRIMARY KEY** | Unique bus identification code (e.g., `BUS-01` to `BUS-50`). |
+| `seats` | `INTEGER` | **NOT NULL**, Default `55` | Fixed seated capacity. |
+| `default_area_id` | `VARCHAR(32)` | Nullable | Status-quo / default baseline area assignment. |
+| `is_active` | `BOOLEAN` | Default `TRUE` | Fleet availability flag (accounts for maintenance). |
+
+---
+
+### C. `registrations`
+Official term registrations associating students with their requested pickup stop.
+
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `reg_id` | `INTEGER` | **PRIMARY KEY**, Auto-inc | Record surrogate key. |
+| `student_hash` | `VARCHAR(64)` | **NOT NULL**, **INDEXED** | Salted SHA-256 hash of student ID (PII anonymized). |
+| `stop_id` | `VARCHAR(32)` | **FOREIGN KEY** (`stops.stop_id`) | Designated primary boarding stop. |
+| `academic_year` | `VARCHAR(16)` | Default `'2025-2026'` | Registration term. |
+
+---
+
+### D. `calendar`
+Institutional schedule, working days, examinations, and holidays influencing ridership.
+
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `date` | `DATE` | **PRIMARY KEY** | Target calendar date (`YYYY-MM-DD`). |
+| `day_of_week` | `INTEGER` | `0` (Mon) to `6` (Sun) | Standard ISO weekday integer. |
+| `is_holiday` | `BOOLEAN` | **NOT NULL**, Default `FALSE` | Holiday flag (zero ridership expected). |
+| `exam_flag` | `BOOLEAN` | **NOT NULL**, Default `FALSE` | Exam period flag (causes temporal ridership surge). |
+| `first_class_time` | `VARCHAR(8)` | Default `'08:30'` | Morning arrival deadline at college campus. |
+
+---
+
+### E. `demand_obs`
+Historical passenger boarding counts used for training the LightGBM forecasting model.
+
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `obs_id` | `INTEGER` | **PRIMARY KEY**, Auto-inc | Observation surrogate key. |
+| `stop_id` | `VARCHAR(32)` | **FOREIGN KEY** (`stops.stop_id`) | Stop observed. |
+| `date` | `DATE` | **FOREIGN KEY** (`calendar.date`) | Observation date. |
+| `slot` | `VARCHAR(16)` | Default `'morning'` | Time window (`morning`, `evening`). |
+| `riders` | `INTEGER` | **NOT NULL** | Actual boarding count. |
+| `source` | `VARCHAR(32)` | Default `'field_count'` | Data origin (`attendance`, `field_count`, `survey`). |
+
+---
+
+### F. `plans`
+Optimized dispatch solutions generated by the fleet allocation and routing solvers.
+
+| Column Name | Data Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `plan_id` | `INTEGER` | **PRIMARY KEY**, Auto-inc | Unique plan surrogate key. |
+| `date` | `DATE` | **INDEXED** | Plan execution date. |
+| `slot` | `VARCHAR(16)` | Default `'morning'` | Dispatch slot. |
+| `bus_id` | `VARCHAR(32)` | **FOREIGN KEY** (`buses.bus_id`) | Assigned vehicle. |
+| `area_id` | `VARCHAR(32)` | **NOT NULL** | Assigned regional zone. |
+| `route_json` | `TEXT` / `JSON` | **NOT NULL** | Ordered stop IDs, arrival timestamps, and total km. |
+| `created_at` | `TIMESTAMP` | Auto-timestamp | Generation timestamp. |

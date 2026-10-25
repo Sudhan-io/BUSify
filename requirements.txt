@@ -1,0 +1,42 @@
+# BUSify Backend — Pinned Production Dependencies
+# Generated for Python 3.12
+# ============================================================
+# To update: pip-compile requirements.in --generate-hashes
+# ============================================================
+
+# ── Web Framework ─────────────────────────────────────────────
+fastapi==0.115.2
+uvicorn[standard]==0.32.0
+gunicorn==23.0.0
+python-multipart==0.0.17      # Required for FastAPI file uploads
+
+# ── Security & Authentication ─────────────────────────────────
+PyJWT==2.9.0                  # JWT token encoding/decoding (HS256)
+passlib[bcrypt]==1.7.4        # Password hashing (for future User model)
+python-jose[cryptography]==3.3.0  # Alternative JWT library (optional)
+
+# ── Settings & Environment ────────────────────────────────────
+pydantic==2.9.2
+pydantic-settings==2.6.0
+
+# ── Database ──────────────────────────────────────────────────
+sqlalchemy==2.0.36
+alembic==1.13.3               # Database migration framework (replaces ALTER TABLE hacks)
+# Uncomment for PostgreSQL production:
+# psycopg2-binary==2.9.10
+
+# ── HTTP Client (OSRM requests with retry) ────────────────────
+requests==2.32.3
+urllib3==2.2.3
+
+# ── Optimisation Engine ───────────────────────────────────────
+ortools==9.11.4210            # Google OR-Tools CVRP solver
+
+# ── Machine Learning & Data ───────────────────────────────────
+lightgbm==4.5.0               # Demand forecasting model
+pandas==2.2.3                 # Data manipulation
+numpy==1.26.4                 # Numerical computation
+scikit-learn==1.5.2           # Preprocessing and feature engineering
+
+# ── Utilities ─────────────────────────────────────────────────
+python-dateutil==2.9.0        # Flexible date parsing

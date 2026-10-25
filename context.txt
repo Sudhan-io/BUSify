@@ -1,0 +1,469 @@
+Problem:
+Many students at the college pay bus fees but still end up traveling standing, because bus allocation across routes doesn't match actual student demand at each stop. Some buses run under-filled while others are overcrowded, and the current system doesn't adjust to how many students are actually waiting at each stop or area at a given time. This is a direct access and equity failure — students are paying for a service that isn't reliably delivering what it promises (SDG 11: Sustainable Cities & Communities, specifically the target on safe, accessible, affordable transport for all; it also touches SDG 10: Reduced Inequalities, since it hits hardest for students with no alternative way to commute).
+Solution:
+A smart, demand-aware bus allocation system that replaces the current fixed/static bus assignment with one that actually responds to where students are and how many there are.
+Predict demand — Estimate how many students will need pickup from each stop and area at different times of day, instead of assuming the same fixed numbers every day.
+Allocate the fleet intelligently — Given a fixed number of buses (e.g. 50), decide how many should be sent to each area based on that predicted demand, so buses go where the crowding actually is rather than following a rigid, unchanging schedule.
+Plan efficient routes within each area — Once an area has its buses, work out the best order to visit its stops so every student is picked up while keeping the total distance (and fuel use) as low as possible.
+Make it visible — Give students a way to see which buses/times are likely to be crowded so they can plan around it, and give the college transport office a way to see where reallocating buses would help most
+
+For this project, I’d lock the tech stack to this. **Don’t over-stack it.** The goal is a working system first, sophisticated infrastructure second.
+
+## Recommended Tech Stack
+
+| Layer                     | Technology                     | Purpose                                       |
+| ------------------------- | ------------------------------ | --------------------------------------------- |
+| **Frontend**              | React + Vite                   | Web application                               |
+| **UI / Styling**          | Tailwind CSS                   | Dashboard UI                                  |
+| **Maps**                  | Leaflet + React-Leaflet        | Bus routes and stops                          |
+| **Charts**                | Recharts                       | Demand/crowding/KPI visualizations            |
+| **Backend API**           | FastAPI                        | REST API and orchestration                    |
+| **Validation**            | Pydantic                       | API request/response validation               |
+| **Database**              | PostgreSQL                     | Main data storage                             |
+| **Geospatial DB**         | PostGIS                        | Stops, coordinates, geographic queries        |
+| **Data Processing**       | Pandas + NumPy                 | Cleaning, transformation, feature engineering |
+| **ML Baseline**           | Scikit-learn                   | Baseline forecasting/model evaluation         |
+| **Forecasting**           | LightGBM                       | Passenger-demand prediction                   |
+| **Hyperparameter Tuning** | Optuna                         | LightGBM tuning — optional                    |
+| **Optimization**          | OR-Tools                       | Bus allocation + route optimization           |
+| **Routing Engine**        | OSRM                           | Road-distance/travel-time matrix              |
+| **Geocoding**             | Nominatim                      | Convert stop addresses → coordinates          |
+| **Simulation**            | Python + NumPy                 | Compare current vs optimized allocation       |
+| **Database Migration**    | Alembic                        | Schema/version management                     |
+| **Scheduling**            | APScheduler                    | Periodic forecasting/replanning               |
+| **Containerization**      | Docker Compose                 | Run PostgreSQL/OSRM/backend consistently      |
+| **Version Control**       | Git + GitHub                   | Source control                                |
+| **Deployment**            | Render / Oracle Cloud + Vercel | Backend/database + frontend                   |
+
+---
+
+# Architecture
+
+```text
+                         ┌─────────────────────┐
+                         │  Transport Office   │
+                         │ Excel / CSV / Forms │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │ Pandas + NumPy      │
+                         │ Data Cleaning       │
+                         │ Feature Engineering │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                    ┌──────────────────────────────┐
+                    │ PostgreSQL + PostGIS         │
+                    │                              │
+                    │ Stops                        │
+                    │ Buses                        │
+                    │ Registrations                │
+                    │ Attendance                   │
+                    │ Rider Counts                 │
+                    │ Forecasts                    │
+                    │ Plans                        │
+                    └──────────────┬───────────────┘
+                                   │
+                    ┌──────────────┴──────────────┐
+                    ▼                             ▼
+          ┌─────────────────┐          ┌──────────────────┐
+          │   LightGBM      │          │     OR-Tools     │
+          │ Demand Forecast │          │ Fleet Allocation │
+          └────────┬────────┘          └────────┬─────────┘
+                   │                            │
+                   │ p50 / p90                  │ buses/area
+                   └────────────┬───────────────┘
+                                ▼
+                       ┌─────────────────┐
+                       │    OR-Tools     │
+                       │ Route Optimizer │
+                       └────────┬────────┘
+                                │
+                                ▼
+                       ┌─────────────────┐
+                       │      OSRM       │
+                       │ Road distances  │
+                       │ Travel times    │
+                       └────────┬────────┘
+                                │
+                                ▼
+                       ┌─────────────────┐
+                       │    FastAPI      │
+                       │     Backend     │
+                       └────────┬────────┘
+                                │ REST API
+                                ▼
+                       ┌─────────────────┐
+                       │ React + Vite    │
+                       │                 │
+                       │ Office Dashboard│
+                       │ Student View    │
+                       │ Route Map       │
+                       └─────────────────┘
+```
+
+# What each major technology actually does
+
+### 1. PostgreSQL + PostGIS
+
+Your **source of truth**.
+
+```text
+PostgreSQL
+    ↓
+stores structured data
+
+PostGIS
+    ↓
+understands coordinates/geographic objects
+```
+
+Example:
+
+```text
+Stop 101
+Name: Vengamedu
+Latitude: ...
+Longitude: ...
+Area: A1
+```
+
+---
+
+### 2. Pandas + NumPy
+
+Data engineering.
+
+```text
+Raw Excel
+   ↓
+Pandas
+   ↓
+clean
+   ↓
+transform
+   ↓
+features
+   ↓
+ML-ready dataset
+```
+
+---
+
+### 3. LightGBM
+
+Predict:
+
+```text
+How many students are likely to travel?
+```
+
+Output:
+
+```text
+Area A
+p50 = 185 riders
+p90 = 214 riders
+```
+
+The **p90 forecast** is particularly useful for allocation because you're planning capacity against higher-demand scenarios rather than only the expected value.
+
+---
+
+### 4. OR-Tools
+
+Two separate problems:
+
+```text
+OR-Tools
+   │
+   ├── Fleet allocation
+   │
+   └── Vehicle routing
+```
+
+Allocation:
+
+```text
+50 buses
+   ↓
+A → 8
+B → 12
+C → 6
+D → 15
+E → 9
+```
+
+Routing:
+
+```text
+Bus 17
+College
+ ↓
+Stop A
+ ↓
+Stop C
+ ↓
+Stop F
+ ↓
+College
+```
+
+---
+
+### 5. OSRM
+
+OR-Tools needs realistic road distances/times.
+
+Instead of:
+
+```text
+straight-line distance
+```
+
+you get:
+
+```text
+actual road distance
+actual estimated travel time
+```
+
+So:
+
+```text
+College → Stop A
+College → Stop B
+Stop A → Stop B
+...
+```
+
+becomes a distance/time matrix.
+
+---
+
+### 6. FastAPI
+
+Connects everything.
+
+For example:
+
+```http
+GET /forecast?date=2026-09-20
+```
+
+returns:
+
+```json
+{
+  "area": "A",
+  "p50": 185,
+  "p90": 214
+}
+```
+
+And:
+
+```http
+GET /plan?date=2026-09-20
+```
+
+returns the optimized allocation and routes.
+
+---
+
+### 7. React
+
+Two interfaces:
+
+```text
+                 React
+                   │
+          ┌────────┴────────┐
+          ▼                 ▼
+ Transport Office       Student
+ Dashboard              View
+```
+
+**Office:**
+
+* predicted demand
+* bus allocation
+* route map
+* overcrowding
+* KPIs
+* simulation
+
+**Student:**
+
+* assigned bus
+* route
+* expected crowding
+* pickup stop/time
+
+---
+
+# What I would NOT implement initially
+
+Your original stack has some unnecessary complexity for a college project.
+
+### Don't start with:
+
+```text
+Celery
+Optuna
+SimPy
+GitHub Actions
+Oracle deployment
+Tamil Nadu OSM extract
+```
+
+Build the core first.
+
+Use:
+
+```text
+Python
+Pandas
+LightGBM
+OR-Tools
+PostgreSQL
+FastAPI
+React
+Leaflet
+```
+
+Once that works, add the infrastructure pieces.
+
+## Final stack to put in your project proposal
+
+```text
+Frontend:
+React.js, Vite, Tailwind CSS, Leaflet, Recharts
+
+Backend:
+Python, FastAPI, Pydantic
+
+Database:
+PostgreSQL, PostGIS
+
+Data Processing:
+Pandas, NumPy
+
+Machine Learning:
+Scikit-learn, LightGBM
+
+Optimization:
+Google OR-Tools
+
+Routing:
+OSRM, OpenStreetMap, Nominatim
+
+Simulation:
+Python, NumPy
+
+Database Migration:
+Alembic
+
+Scheduling:
+APScheduler
+
+DevOps:
+Docker, Docker Compose, Git, GitHub
+
+Deployment:
+Vercel + Render/Oracle Cloud
+```
+
+**Core technologies:** `Python + LightGBM + OR-Tools + PostgreSQL/PostGIS + FastAPI + React`.
+
+Everything else is supporting infrastructure.
+
+
+Assuming you mean the bus allocation system. Here's the architecture first, then the plan.## Tech stack
+| Layer | Choice |
+|---|---|
+| Data and storage | PostgreSQL + PostGIS, pandas, Alembic for migrations |
+| Forecasting | LightGBM (quantile objective), scikit-learn baseline, Optuna for tuning |
+| Allocation | PuLP or OR-Tools CP-SAT (integer program) |
+| Routing | OR-Tools routing solver; OSRM (Docker, Tamil Nadu OSM extract) for road-distance matrices; Nominatim for geocoding stops |
+| Backend | FastAPI, Pydantic, Celery or APScheduler for the nightly retrain and re-plan |
+| Frontend | React + Vite, Leaflet map, Recharts |
+| Simulation | Python, SimPy or plain NumPy |
+| Ops | Docker Compose, GitHub Actions, deploy on a free VM (Oracle/Render) with the frontend on Vercel |
+
+## Data schema
+- `stops(stop_id, name, lat, lon, area_id)`
+- `buses(bus_id, seats, area_id)`
+- `registrations(student_hash, stop_id)`, with student IDs hashed for privacy
+- `calendar(date, is_holiday, exam_flag, first_class_time)`
+- `demand_obs(stop_id, date, slot, riders, source)`, where `source` is one of attendance, survey, or field count
+- `plans(date, slot, bus_id, area_id, route_json)`
+
+## Workflow
+1. **Ingest.** Load the transport office's Excel or CSV into PostGIS after cleaning and anonymizing.
+2. **Feature build.** Compute expected riders per area, slot, and date from registrations × attendance rate.
+3. **Forecast.** Retrain nightly or weekly, then predict the next 7 days at p50 and p90.
+4. **Allocate.** Solve the fleet split per slot.
+5. **Route.** Solve one capacitated routing problem per area.
+6. **Serve.** Expose the plans and crowd scores through the API.
+7. **Evaluate.** Replay historical days in the simulator and compare against the current allocation.
+
+## Model design decisions
+- **Forecast at area-slot level, not stop level.** Per-stop data will be too sparse. Split the area forecast to stops in proportion to registrations.
+- **Baseline first.** Same-weekday average of recent weeks. LightGBM must beat it on WAPE, or the ML is not justified.
+- **Features:** weekday, week of semester, exam/holiday flag, first-class time, rolling 7 and 14 day means, lagged counts.
+- **Fallback if ground truth is thin:** attendance-based demand from your college's attendance records, calibrated on your field counts.
+
+## Allocation formulation
+- **Variables:** integer `n_a` (buses to area `a`), slack `s_a` (standing students), `e_a` (empty seats), and `d_a` (change from the current allocation).
+- **Constraints:**
+  - `Σ n_a = 50`
+  - `n_a ≥ n_min` (coverage)
+  - `s_a ≥ D_a^p90 − seats × n_a`
+  - `d_a ≥ |n_a − n_current,a|`
+- **Objective:** minimize `Σ s_a + λ Σ e_a + μ Σ d_a`. The `μ` term makes the plan propose small moves instead of a full reshuffle.
+
+## Routing
+- Capacity dimension = seats. Time dimension = arrive before the first class starts.
+- Each area is solved independently, with the depot at the college.
+- The output is an ordered stop list, pickup times, and total km per bus.
+
+## API endpoints
+- `GET /forecast?date=&slot=`: demand p50 and p90 by area
+- `GET /plan?date=&slot=`: bus counts per area and routes
+- `GET /crowding?bus_id=&date=`: crowd level (low, medium, high) for the student view
+- `POST /simulate`: run status quo vs proposed on a date range
+
+## Build phases (assuming 6 weeks; compress to your deadline)
+| Week | Deliverable |
+|---|---|
+| 1 | Get data from the transport office; geocode stops; DB schema; Google Form survey; start field counts |
+| 2 | Cleaned dataset, EDA, baseline forecast and its metrics |
+| 3 | LightGBM quantile model, evaluation, area-to-stop split |
+| 4 | Allocation IP and routing solver, tested on real stop coordinates |
+| 5 | Simulator and KPI comparison; FastAPI endpoints |
+| 6 | React dashboards, deployment, report, demo video |
+
+## KPIs for the simulator
+- Percentage of trips over seat capacity
+- Average standing students per trip
+- Total km per day
+- Buses needed to hit the same service level
+
+## Repo layout
+```
+backend/  api/  forecasting/  allocation/  routing/  simulation/
+frontend/ student-view/  office-dashboard/
+data/     raw/  processed/   (raw is gitignored)
+infra/    docker-compose.yml  osrm/
+notebooks/ eda.ipynb
+```
+
+## Risks
+- **Data access:** confirm with the transport office in week 1. If refused, fall back to the scam detector.
+- **Small ground truth:** report that limitation and show forecast error bands.
+- **Privacy:** hash student IDs and keep raw data out of the repo.
+- **Solver time:** OSRM matrices for about 100 stops per area are fast, but precompute and cache them.
+
+I can also write the LightGBM forecasting notebook skeleton or the OR-Tools allocation and routing code next.

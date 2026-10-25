@@ -1,0 +1,554 @@
+@import "leaflet/dist/leaflet.css";
+@import "tailwindcss";
+
+/* ==============================================================================
+   BUSify Editorial Design System
+   Inspired by clean, authentic, publication-grade typography
+   ============================================================================== */
+:root {
+  --ink: #18201d;
+  --muted: #69716d;
+  --line: #dfe5df;
+  --paper: #f7f8f5;
+  --card: #ffffff;
+  --coral: #ff6b00;         /* Signature energetic transit accent */
+  --coral-soft: #fff3eb;
+  --coral-border: #ffd8c2;
+  --sage: #dcebd9;          /* Confirmed/optimal capacity */
+  --sage-text: #2b6e3b;
+  --violet: #e8e2f5;
+  --blue: #e0edf4;
+  --yellow: #f4e8ba;        /* Moderate crowd */
+  --yellow-text: #82660f;
+  --rose: #f8ded9;          /* High crowd */
+  --rose-text: #a82e20;
+  --radius: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, textarea, select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==============================================================================
+   TOPBAR NAVIGATION
+   ============================================================================== */
+.topbar {
+  height: 74px;
+  padding: 0 4vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(247, 248, 245, 0.94);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: white;
+  background: var(--coral);
+  border-radius: 50%;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.brand-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.brand-sub {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.role-tabs {
+  display: flex;
+  background: #ebeee8;
+  padding: 3px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  gap: 2px;
+}
+
+.role-tab {
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.role-tab:hover {
+  color: var(--ink);
+}
+
+.role-tab.active {
+  background: white;
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.status-dot, .pulse {
+  width: 7px;
+  height: 7px;
+  display: inline-block;
+  background: #48a15b;
+  border-radius: 50%;
+}
+
+.pulse {
+  margin-right: 7px;
+  box-shadow: 0 0 0 4px #dff0df;
+}
+
+/* ==============================================================================
+   BUTTONS
+   ============================================================================== */
+.outline-button, .dark-button, .coral-button, .icon-button {
+  border: 1px solid var(--line);
+  background: white;
+  color: var(--ink);
+  border-radius: 7px;
+  padding: 9px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.dark-button {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: white;
+}
+
+.dark-button:hover {
+  background: #2a3632;
+  border-color: #2a3632;
+}
+
+.coral-button {
+  background: var(--coral);
+  border-color: var(--coral);
+  color: white;
+}
+
+.coral-button:hover {
+  background: #e65a00;
+  border-color: #e65a00;
+}
+
+.outline-button:hover {
+  border-color: var(--ink);
+  background: #fcfdfc;
+}
+
+/* ==============================================================================
+   PAGE LAYOUT & HERO
+   ============================================================================== */
+.page-wrap {
+  max-width: 1280px;
+  margin: auto;
+  padding: 36px 4vw 80px;
+  flex: 1;
+  width: 100%;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 40px;
+  padding-bottom: 32px;
+}
+
+.kicker, .note-label, .muted-label {
+  margin: 0 0 12px;
+  color: #7a8580;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(34px, 4.8vw, 58px);
+  letter-spacing: -0.04em;
+  line-height: 1.0;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.hero h1 em {
+  color: var(--coral);
+  font-style: italic;
+}
+
+.hero-copy {
+  max-width: 580px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 18px 0 0;
+}
+
+.hero-note {
+  min-width: 240px;
+  border-left: 1px solid var(--ink);
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hero-note strong {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 24px;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+}
+
+.hero-note span:last-child {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* ==============================================================================
+   STATUS BANNERS
+   ============================================================================== */
+.banner {
+  border: 1px solid #cfe0d0;
+  background: #edf7ed;
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 2rem;
+}
+
+.banner-coral {
+  border-color: #f7d0c8;
+  background: #fdf2f0;
+}
+
+.banner-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #3f8b4d;
+  background: #cce8cd;
+  flex-shrink: 0;
+}
+
+.banner-icon-coral {
+  color: var(--coral);
+  background: #f8ded9;
+}
+
+.banner-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.banner-body span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ==============================================================================
+   EDITORIAL CARDS & PANELS
+   ============================================================================== */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 22px;
+  transition: border-color 0.2s ease;
+}
+
+.card:hover {
+  border-color: #c5cec6;
+}
+
+.card-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 19px;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+
+.stat-number {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 34px;
+  letter-spacing: -0.04em;
+  font-weight: 400;
+  line-height: 1.05;
+  color: var(--ink);
+}
+
+/* ==============================================================================
+   BADGES & PILLS (Zero emojis)
+   ============================================================================== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-sage {
+  background: var(--sage);
+  color: var(--sage-text);
+}
+
+.badge-coral {
+  background: var(--coral-soft);
+  color: var(--coral);
+  border: 1px solid var(--coral-border);
+}
+
+.badge-blue {
+  background: var(--blue);
+  color: #1f5f84;
+}
+
+.badge-yellow {
+  background: var(--yellow);
+  color: var(--yellow-text);
+}
+
+.badge-rose {
+  background: var(--rose);
+  color: var(--rose-text);
+}
+
+/* ==============================================================================
+   EDITORIAL DATA TABLE
+   ============================================================================== */
+.editorial-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.editorial-table th {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+
+.editorial-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid #edf1ed;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.editorial-table tr:hover td {
+  background: #fafbfa;
+}
+
+/* ==============================================================================
+   LEAFLET MAP CONTAINER
+   ============================================================================== */
+.leaflet-container {
+  background-color: #f7f8f5 !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  border-radius: var(--radius);
+  z-index: 10 !important;
+}
+
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 20 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #ffffff !important;
+  color: #18201d !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 9px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+.leaflet-popup-tip {
+  background: #ffffff !important;
+}
+
+/* Editorial Info Tooltip with Question Mark (?) */
+.info-hint {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  vertical-align: middle;
+  margin-left: 5px;
+}
+
+.hint-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #edf1ed;
+  color: #69716d;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: monospace;
+  border: 1px solid #dfe5df;
+  transition: all 0.15s ease;
+  user-select: none;
+  line-height: 1;
+}
+
+.info-hint:hover .hint-trigger,
+.info-hint:focus .hint-trigger {
+  background: #18201d;
+  color: #ffffff;
+  border-color: #18201d;
+}
+
+.hint-box {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #18201d;
+  color: #f7f8f5;
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 400;
+  padding: 6px 10px;
+  border-radius: 6px;
+  width: max-content;
+  max-width: 250px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 10000;
+  white-space: normal;
+  text-align: left;
+}
+
+.hint-box::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: #18201d transparent transparent transparent;
+}
+
+.info-hint:hover .hint-box,
+.info-hint:focus .hint-box {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+
