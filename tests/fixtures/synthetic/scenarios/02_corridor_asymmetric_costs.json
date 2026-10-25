@@ -1,0 +1,83 @@
+{
+  "scenario_id": "SC-02",
+  "description": "Corridor with asymmetric travel times due to one-way bridges and morning express lanes.",
+  "depot": {
+    "name": "VSB Engineering College Campus Hub",
+    "lat": 10.9322,
+    "lon": 78.0744
+  },
+  "bus_capacity": 55,
+  "num_buses": 2,
+  "target_arrival_time": "08:30",
+  "stops": [
+    {
+      "stop_id": "SYN_ASYM_1",
+      "name": "North One-Way Toll Plaza",
+      "lat": 10.985,
+      "lon": 78.07,
+      "sequence_order": 1,
+      "p90_riders": 30
+    },
+    {
+      "stop_id": "SYN_ASYM_2",
+      "name": "Industrial Estate Flyover",
+      "lat": 10.998,
+      "lon": 78.082,
+      "sequence_order": 2,
+      "p90_riders": 25
+    },
+    {
+      "stop_id": "SYN_ASYM_3",
+      "name": "River Bridge Return Loop",
+      "lat": 11.012,
+      "lon": 78.095,
+      "sequence_order": 3,
+      "p90_riders": 20
+    },
+    {
+      "stop_id": "SYN_ASYM_4",
+      "name": "Bypass Cross Junction",
+      "lat": 11.025,
+      "lon": 78.105,
+      "sequence_order": 4,
+      "p90_riders": 15
+    }
+  ],
+  "duration_matrix": [
+    [
+      0,
+      600,
+      950,
+      1400,
+      1800
+    ],
+    [
+      900,
+      0,
+      320,
+      750,
+      1100
+    ],
+    [
+      1300,
+      480,
+      0,
+      400,
+      800
+    ],
+    [
+      1800,
+      900,
+      520,
+      0,
+      420
+    ],
+    [
+      2300,
+      1300,
+      950,
+      500,
+      0
+    ]
+  ]
+}

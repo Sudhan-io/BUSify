@@ -1,0 +1,30 @@
+{
+  "scenario_id": "SC-03",
+  "description": "Single high-density transit junction whose ridership (125) exceeds physical bus capacity (50).",
+  "depot": {
+    "name": "VSB Engineering College Campus Hub",
+    "lat": 10.9322,
+    "lon": 78.0744
+  },
+  "bus_capacity": 50,
+  "num_buses": 4,
+  "target_arrival_time": "08:30",
+  "stops": [
+    {
+      "stop_id": "SYN_MEGA_1",
+      "name": "Central Railway Junction Hub",
+      "lat": 10.965,
+      "lon": 78.08,
+      "sequence_order": 1,
+      "p90_riders": 125
+    },
+    {
+      "stop_id": "SYN_NORM_2",
+      "name": "South Bus Stand Feeder",
+      "lat": 10.978,
+      "lon": 78.088,
+      "sequence_order": 2,
+      "p90_riders": 35
+    }
+  ]
+}

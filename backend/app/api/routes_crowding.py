@@ -11,6 +11,19 @@ from backend.app.core.data.synthetic_generator import AREAS_CONFIG
 
 router = APIRouter(tags=["Student Crowding"])
 
+from functools import lru_cache
+
+@lru_cache(maxsize=32)
+def _get_area_allocation_cached(target_date: str, is_exam: bool) -> dict:
+    """Caches daily fleet allocation across areas to prevent solving CP-SAT on every student query."""
+    all_demands = {
+        a: forecaster.predict_for_date(target_date, a, exam_flag=is_exam)["p90_demand"]
+        for a in AREAS_CONFIG.keys()
+    }
+    alloc_res = fleet_allocator.solve(all_demands, BASELINE_ALLOCATION)
+    return alloc_res.get("allocation", {})
+
+
 @router.get("/crowding")
 def get_bus_crowding(
     bus_id: str = Query(..., description="Target vehicle ID (e.g. BUS-01, BUS-14)"),
@@ -51,13 +64,9 @@ def get_bus_crowding(
     p50_area = pred["p50_demand"]
     p90_area = pred["p90_demand"]
 
-    # Solve allocation to see how many buses are serving this area
-    all_demands = {
-        a: forecaster.predict_for_date(target_date, a, exam_flag=is_exam)["p90_demand"]
-        for a in AREAS_CONFIG.keys()
-    }
-    alloc_res = fleet_allocator.solve(all_demands, BASELINE_ALLOCATION)
-    buses_in_area = alloc_res["allocation"].get(assigned_area, 8)
+    # Use cached allocation instead of solving CP-SAT per commuter request
+    allocation = _get_area_allocation_cached(target_date, is_exam)
+    buses_in_area = allocation.get(assigned_area, 8)
 
     # Average load per bus in this area
     avg_passengers_p50 = round(p50_area / max(buses_in_area, 1), 1)

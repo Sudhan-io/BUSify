@@ -1,0 +1,54 @@
+{
+  "scenario_id": "SC-01",
+  "description": "Standard linear 5-stop corridor along Karur Road with moderate demand within fleet capacity.",
+  "depot": {
+    "name": "VSB Engineering College Campus Hub",
+    "lat": 10.9322,
+    "lon": 78.0744
+  },
+  "bus_capacity": 55,
+  "num_buses": 3,
+  "target_arrival_time": "08:30",
+  "stops": [
+    {
+      "stop_id": "SYN_A1",
+      "name": "Karur Bus Stand Central",
+      "lat": 10.9601,
+      "lon": 78.0766,
+      "sequence_order": 1,
+      "p90_riders": 35
+    },
+    {
+      "stop_id": "SYN_A2",
+      "name": "Vengamedu Junction",
+      "lat": 10.9712,
+      "lon": 78.0811,
+      "sequence_order": 2,
+      "p90_riders": 20
+    },
+    {
+      "stop_id": "SYN_A3",
+      "name": "Gandhigramam South",
+      "lat": 10.9834,
+      "lon": 78.0855,
+      "sequence_order": 3,
+      "p90_riders": 40
+    },
+    {
+      "stop_id": "SYN_A4",
+      "name": "Pasupathipalayam Bypass",
+      "lat": 10.995,
+      "lon": 78.092,
+      "sequence_order": 4,
+      "p90_riders": 25
+    },
+    {
+      "stop_id": "SYN_A5",
+      "name": "Thanthonimalai Ring",
+      "lat": 11.008,
+      "lon": 78.101,
+      "sequence_order": 5,
+      "p90_riders": 15
+    }
+  ]
+}

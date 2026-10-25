@@ -163,8 +163,18 @@ def get_operational_manifest(
                 "campus_arrival_24h": format_24h(campus_arrival),
                 "schedule_feasible": route.get("schedule_feasible", True),
                 "total_distance_km": route.get("total_distance_km", 0.0),
-                "stop_count": len(itinerary),
-                "stops_list": [s.get("name", "") for s in itinerary[:4]],
+                "stops_list": [s.get("name", "") for s in itinerary if s.get("node_type") == "pickup_stop"],
+                "stops_detail": [
+                    {
+                        "name": s.get("name", ""),
+                        "stop_id": s.get("stop_id", ""),
+                        "time": s.get("time", ""),
+                        "boarded": s.get("boarded", 0),
+                        "node_type": s.get("node_type", "pickup_stop"),
+                    }
+                    for s in itinerary
+                    if s.get("node_type") == "pickup_stop"
+                ],
                 "status": "APPROVED_DISPATCHED",
             })
             bus_idx += 1
@@ -182,6 +192,9 @@ def get_operational_manifest(
         "total_seats_deployed": deployed_seats,
         "total_expected_riders": total_riders,
         "overall_utilization_pct": round(total_riders / max(deployed_seats, 1) * 100, 1),
+        "total_standing": alloc_res.get("total_standing", 0),
+        "total_empty": alloc_res.get("total_empty", 0),
+        "churn": alloc_res.get("total_churn", 0),
         "manifest": manifest,
         "area_allocation": optimized_allocation,
         "baseline_allocation": baseline,

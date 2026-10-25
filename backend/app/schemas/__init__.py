@@ -9,6 +9,21 @@ class StopSchema(BaseModel):
     area_id: str
     sequence_order: int
 
+class StopCreateRequest(BaseModel):
+    stop_id: str
+    name: str
+    lat: float
+    lon: float
+    area_id: str
+    sequence_order: int = 1
+
+class StopUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    area_id: Optional[str] = None
+    sequence_order: Optional[int] = None
+
 class BusSchema(BaseModel):
     bus_id: str
     seats: int

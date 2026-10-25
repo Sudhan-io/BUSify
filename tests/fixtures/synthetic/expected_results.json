@@ -1,0 +1,36 @@
+{
+  "SC-01": {
+    "min_active_buses": 2,
+    "max_active_buses": 3,
+    "total_demand": 135,
+    "max_bus_load": 55,
+    "requires_monotonic_sequence": true,
+    "expected_schedule_feasible": true
+  },
+  "SC-02": {
+    "min_active_buses": 2,
+    "max_active_buses": 2,
+    "total_demand": 90,
+    "max_bus_load": 55,
+    "supports_asymmetric_matrix": true,
+    "expected_schedule_feasible": true
+  },
+  "SC-03": {
+    "total_demand": 160,
+    "max_bus_load": 50,
+    "expected_virtual_splits": true,
+    "max_single_pickup_load": 50,
+    "min_active_buses": 4
+  },
+  "SC-04": {
+    "expected_schedule_feasible": false,
+    "clamps_to_earliest_departure": true,
+    "earliest_departure_floor": "06:00"
+  },
+  "SC-05": {
+    "filtered_valid_stops_count": 2,
+    "total_valid_demand": 55,
+    "max_bus_load": 55,
+    "sanitizer_discards_invalid": true
+  }
+}

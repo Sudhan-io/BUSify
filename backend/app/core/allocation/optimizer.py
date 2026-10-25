@@ -37,9 +37,21 @@ class FleetAllocationOptimizer:
         e = {}  # Empty seats slack
         d = {}  # Churn slack |n_a - current_a|
 
+        # Defensive: scale minimum coverage if it exceeds total fleet capacity
+        norm_min = {}
+        for a in areas:
+            norm_min[a] = min_coverage.get(a, 2) if min_coverage else 2
+        sum_min = sum(norm_min.values())
+        if sum_min > self.total_fleet:
+            scale = self.total_fleet / max(sum_min, 1)
+            norm_min = {a: max(1, int(norm_min[a] * scale)) for a in areas}
+            # If still exceeding (due to max(1, ...)), floor to 0
+            if sum(norm_min.values()) > self.total_fleet:
+                norm_min = {a: 0 for a in areas}
+
         for a in areas:
             # Capacity bounded between min coverage and total fleet
-            min_buses = min_coverage.get(a, 2) if min_coverage else 2
+            min_buses = norm_min.get(a, 1)
             n[a] = model.NewIntVar(min_buses, self.total_fleet, f"buses_{a}")
             
             # Demand upper bound for slack domain
@@ -81,7 +93,24 @@ class FleetAllocationOptimizer:
         status = solver.Solve(model)
 
         if status not in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
-            raise RuntimeError(f"CP-SAT solver failed to find feasible solution. Status code: {status}")
+            # Graceful proportional fallback
+            tot_d = sum(predicted_demands.values()) or 1
+            fallback_alloc = {
+                a: max(1, int(round((predicted_demands[a] / tot_d) * self.total_fleet)))
+                for a in areas
+            }
+            diff = self.total_fleet - sum(fallback_alloc.values())
+            if areas:
+                fallback_alloc[areas[0]] += diff
+            return {
+                "status": "FALLBACK_PROPORTIONAL",
+                "total_fleet_available": self.total_fleet,
+                "total_buses_allocated": sum(fallback_alloc.values()),
+                "allocation": fallback_alloc,
+                "total_standing": 0,
+                "total_empty": 0,
+                "total_churn": 0,
+            }
 
         optimized_allocation = {a: solver.Value(n[a]) for a in areas}
         standing_per_area = {a: solver.Value(s[a]) for a in areas}

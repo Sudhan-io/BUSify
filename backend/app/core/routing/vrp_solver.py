@@ -40,22 +40,29 @@ class CapacitatedVRPSolver:
 
     def _preprocess_stops(self, stops: list[dict], num_buses: int = 6) -> list[dict]:
         """
-        Partitions stops with demand exceeding target pickup chunk size into
-        multiple virtual pickup visits at the exact same location.
-        Ensures nodes can be combinatorially packed into available vehicle bins.
+        Splits stops whose p90_riders demand exceeds a single bus capacity into
+        multiple virtual pickup visits at the same location, each ≤ bus_capacity.
+
+        Previous logic split on a 30-pax chunk, bloating node count from ~9 real
+        stops to 19 virtual ones — forcing OR-Tools to pack 19 nodes into 8 bins
+        with a 2-second time limit, causing status-3 failures and heuristic fallback.
+
+        Now: only split when a stop truly cannot fit in one bus trip.
         """
         processed_stops = []
-        # Target chunk size allows multiple stops to be served per vehicle without violating capacity
-        target_chunk_size = min(30, int(self.bus_capacity * 0.60))
+        # Only split if a stop exceeds the physical bus seating capacity
+        split_threshold = self.bus_capacity
 
         for s in stops:
             demand = int(s.get("p90_riders", 10))
-            if demand <= target_chunk_size:
+            if demand <= split_threshold:
+                # Fits in one vehicle — no virtual split needed
                 processed_stops.append(dict(s))
             else:
+                # Genuinely oversized stop: needs multiple trips
                 part = 1
                 while demand > 0:
-                    current_chunk = min(demand, target_chunk_size)
+                    current_chunk = min(demand, split_threshold)
                     virtual_stop = dict(s)
                     virtual_stop["stop_id"] = f"{s['stop_id']}_P{part}"
                     virtual_stop["name"] = f"{s['name']} (Batch {part})"
@@ -128,9 +135,13 @@ class CapacitatedVRPSolver:
         # Search parameters
         search_parameters = pywrapcp.DefaultRoutingSearchParameters()
         search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.PARALLEL_CHEAPEST_INSERTION
+            routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
         )
-        search_parameters.time_limit.seconds = 2
+        search_parameters.local_search_metaheuristic = (
+            routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+        )
+        # 1s gives OR-Tools ample time to optimize small (< 15 nodes) corridor networks without latency blowup
+        search_parameters.time_limit.seconds = 1
 
         solution = routing.SolveWithParameters(search_parameters)
 
@@ -245,8 +256,23 @@ class CapacitatedVRPSolver:
                 # Reverse stops order so inner stops are reached first
                 pickup_nodes = [s for s in scheduled_steps if s.get("node_type") == "pickup_stop"]
                 pickup_nodes.reverse()
-                for p_idx, p_node in enumerate(pickup_nodes):
-                    cur_dt += timedelta(minutes=int(5 + p_idx * 3))
+                prev_coord = depot_coords
+                speed_mps = (settings.AVERAGE_BUS_SPEED_KMH * 1000.0) / 3600.0
+                dwell_sec = 60  # 1 min dropoff dwell
+
+                for p_node in pickup_nodes:
+                    curr_coord = (p_node["lat"], p_node["lon"])
+                    import math
+                    R = 6371000
+                    lat1, lon1, lat2, lon2 = prev_coord[0], prev_coord[1], curr_coord[0], curr_coord[1]
+                    dlat = math.radians(lat2 - lat1)
+                    dlon = math.radians(lon2 - lon1)
+                    hav = math.sin(dlat/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dlon/2)**2
+                    dist = R * 2 * math.atan2(math.sqrt(hav), math.sqrt(1-hav)) * settings.ROAD_DETOUR_INDEX
+                    seg_seconds = max(120, int(dist / speed_mps))
+                    cur_dt += timedelta(seconds=seg_seconds + dwell_sec)
+                    prev_coord = curr_coord
+
                     evening_steps.append({
                         "node_type": "dropoff_stop",
                         "stop_id": p_node.get("stop_id"),
@@ -258,7 +284,7 @@ class CapacitatedVRPSolver:
                         "disembarked": p_node.get("boarded", 5)
                     })
                 # Final terminal
-                cur_dt += timedelta(minutes=8)
+                cur_dt += timedelta(minutes=5)
                 evening_steps.append({
                     "node_type": "depot_arrival",
                     "name": "Corridor Outer Terminal Depot",
@@ -322,8 +348,15 @@ class CapacitatedVRPSolver:
         buses_chunks = [[] for _ in range(num_buses)]
         bus_loads = [0] * num_buses
 
-        # Sort stops descending by demand for optimal bin packing
-        sorted_stops = sorted(stops, key=lambda s: s.get("p90_riders", 10), reverse=True)
+        # Sort stops by corridor sequence_order for geographic topology.
+        # Demand-descending sort (old behaviour) created spaghetti routes: a bus
+        # would jump from high-demand stops at opposite ends of the corridor.
+        # sequence_order is set by disaggregator from the DB stops table; fall
+        # back to stop_id lexicographic order if the field is absent.
+        sorted_stops = sorted(
+            stops,
+            key=lambda s: (s.get("sequence_order") or 9999, s.get("stop_id", ""))
+        )
 
         for s in sorted_stops:
             rem = s.get("p90_riders", 10)
@@ -339,32 +372,59 @@ class CapacitatedVRPSolver:
                     bus_loads[b_idx] += take
                     rem -= take
 
+        speed_mps = (settings.AVERAGE_BUS_SPEED_KMH * 1000.0) / 3600.0
+
+        def _seg_seconds(a, b):
+            import math
+            R = 6371000
+            lat1, lon1, lat2, lon2 = a[0], a[1], b[0], b[1]
+            dlat = math.radians(lat2 - lat1)
+            dlon = math.radians(lon2 - lon1)
+            hav = math.sin(dlat/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dlon/2)**2
+            dist = R * 2 * math.atan2(math.sqrt(hav), math.sqrt(1-hav)) * settings.ROAD_DETOUR_INDEX
+            return int(dist / speed_mps)
+
         for b_idx, chunk in enumerate(buses_chunks):
             if not chunk:
                 continue
             total_load = bus_loads[b_idx]
 
-            # Schedule pickups by walking forward from the earliest permissible
-            # departure. The previous f"08:{5 + i * 5:02d}" arithmetic emitted
-            # invalid times such as "08:65" for routes with 12+ stops.
-            pickup_clock = datetime.strptime(
-                settings.EARLIEST_ROUTE_DEPARTURE, "%H:%M"
-            ) + timedelta(minutes=settings.FALLBACK_DEPOT_DWELL_MINUTES)
+            # R8 fix: re-sort each bus's assigned stops by corridor sequence_order
+            # so the pickup itinerary follows the road rather than FFD insertion order.
+            chunk = sorted(chunk, key=lambda s: (s.get("sequence_order") or 9999, s.get("stop_id", "")))
+
+            # Build backward-scheduled pickup times using Haversine distance from
+            # depot → stops, proportioned against the target arrival window.
+            # EARLIEST_ROUTE_DEPARTURE is the hard floor (06:00); the chain walks
+            # backward from target_arrival_time, subtracting inter-stop travel
+            # time estimated at AVERAGE_BUS_SPEED_KMH.
+            target_dt = datetime.strptime(target_arrival_time, "%H:%M")
+            earliest_dt = datetime.strptime(settings.EARLIEST_ROUTE_DEPARTURE, "%H:%M")
+
+            # Build itinerary positions: depot + stops + depot
+            itinerary_coords = [(depot_coords[0], depot_coords[1])] + [(s["lat"], s["lon"]) for s in chunk] + [(depot_coords[0], depot_coords[1])]
+
+            times = [None] * len(itinerary_coords)
+            times[-1] = target_dt  # last node = depot arrival
+            for i in range(len(itinerary_coords) - 2, -1, -1):
+                seg_s = _seg_seconds(itinerary_coords[i], itinerary_coords[i + 1])
+                t = times[i + 1] - timedelta(seconds=seg_s)
+                times[i] = max(t, earliest_dt)
+
             pickup_steps = []
-            for s in chunk:
+            for i, s in enumerate(chunk):
                 pickup_steps.append({
                     "node_type": "pickup_stop",
                     "stop_id": s["stop_id"],
                     "name": s["name"],
-                    "time": pickup_clock.strftime("%H:%M"),
+                    "time": times[i + 1].strftime("%H:%M"),
                     "lat": s["lat"],
                     "lon": s["lon"],
                     "boarded": s["p90_riders"],
                 })
-                pickup_clock += timedelta(minutes=settings.FALLBACK_STOP_DWELL_MINUTES)
 
             itinerary = [
-                {"node_type": "depot_departure", "name": f"{settings.COLLEGE_NAME} (Depot Out)", "time": datetime.strptime(settings.EARLIEST_ROUTE_DEPARTURE, "%H:%M").strftime("%H:%M"), "lat": depot_coords[0], "lon": depot_coords[1], "boarded": 0}
+                {"node_type": "depot_departure", "name": f"{settings.COLLEGE_NAME} (Depot Out)", "time": times[0].strftime("%H:%M"), "lat": depot_coords[0], "lon": depot_coords[1], "boarded": 0}
             ] + pickup_steps + [
                 {"node_type": "depot_arrival", "name": settings.COLLEGE_NAME, "time": target_arrival_time, "lat": depot_coords[0], "lon": depot_coords[1], "boarded": 0}
             ]

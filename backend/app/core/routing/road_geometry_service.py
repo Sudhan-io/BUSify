@@ -46,6 +46,9 @@ def _build_osrm_session() -> requests.Session:
 _osrm_session = _build_osrm_session()
 
 
+GEOMETRY_CACHE_MAX_ENTRIES = 128
+
+
 class RoadGeometryService:
     """
     Fetches real-world turn-by-turn road polyline geometries from a self-hosted
@@ -60,6 +63,11 @@ class RoadGeometryService:
 
     def __init__(self):
         self._cache: dict = {}
+
+    def _set_cache(self, key, value):
+        if len(self._cache) >= GEOMETRY_CACHE_MAX_ENTRIES:
+            self._cache.pop(next(iter(self._cache)))
+        self._cache[key] = value
 
     def get_road_geometry(
         self, waypoints: List[Tuple[float, float]]
@@ -120,7 +128,7 @@ class RoadGeometryService:
                 geojson_coords = data["routes"][0]["geometry"]["coordinates"]
                 leaflet_coords = [[lat, lon] for lon, lat in geojson_coords]
                 if leaflet_coords:
-                    self._cache[cache_key] = leaflet_coords
+                    self._set_cache(cache_key, leaflet_coords)
                     return leaflet_coords
 
             logger.warning(
@@ -153,7 +161,7 @@ class RoadGeometryService:
                 len(norm_waypoints),
             )
             fallback = [[lat, lon] for lat, lon in norm_waypoints]
-            self._cache[cache_key] = fallback
+            self._set_cache(cache_key, fallback)
             return fallback
 
         # Fallback disabled — raise so callers know routing failed

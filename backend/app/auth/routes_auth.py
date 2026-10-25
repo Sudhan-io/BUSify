@@ -72,7 +72,8 @@ def login(payload: LoginRequest):
         getattr(settings, user["password_env_var"], None)
         or os.environ.get(user["password_env_var"], "")
     )
-    if not expected_password or payload.password != expected_password:
+    import hmac
+    if not expected_password or not hmac.compare_digest(payload.password, expected_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password.",

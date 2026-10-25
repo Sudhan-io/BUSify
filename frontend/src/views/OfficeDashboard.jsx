@@ -347,19 +347,19 @@ export default function OfficeDashboard({
         />
         <MetricCard
           title="Standing Commuters"
-          value="0"
-          subtitle="100% seating equity achieved"
+          value={manifestData?.total_standing != null ? `${manifestData.total_standing}` : "0"}
+          subtitle={manifestData?.total_standing > 0 ? "Exceeds seating capacity" : "100% seating equity achieved"}
           icon={ShieldCheck}
-          tone="sage"
-          badge="Guaranteed"
+          tone={manifestData?.total_standing > 0 ? "coral" : "sage"}
+          badge={manifestData?.total_standing > 0 ? "Overflow" : "Guaranteed"}
         />
         <MetricCard
           title="Fleet Churn"
-          value={`${Math.abs((manifestData?.area_allocation?.AREA_A || 10) - 10) * 2} Shifts`}
-          subtitle="Stabilized route adjustments"
+          value={manifestData?.total_fleet_churn != null ? `${manifestData.total_fleet_churn} Shifts` : (manifestData?.churn != null ? `${manifestData.churn} Shifts` : "0 Shifts")}
+          subtitle="Net vehicle reallocations vs baseline"
           icon={RefreshCw}
           tone="yellow"
-          badge="mu = 15"
+          badge="Adaptive"
         />
       </div>
 
@@ -674,17 +674,33 @@ export default function OfficeDashboard({
 
             <div className="space-y-2 text-xs">
               <span className="font-bold text-[#18201d]">Pickup Stops & Passenger Quota:</span>
-              <div className="border border-[#dfe5df] rounded-[8px] p-3 space-y-1.5 bg-white">
-                {selectedTripSheet.stops_list.map((st, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs">
-                    <span className="font-medium">{i + 1}. {st}</span>
-                    <span className="text-[#69716d]">~{Math.round(selectedTripSheet.allocated_riders / selectedTripSheet.stop_count)} riders</span>
-                  </div>
-                ))}
+              <div className="border border-[#dfe5df] rounded-[8px] p-3 space-y-2 bg-white max-h-60 overflow-y-auto">
+                {selectedTripSheet.stops_detail && selectedTripSheet.stops_detail.length > 0 ? (
+                  selectedTripSheet.stops_detail.map((st, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-[#edf1ed] last:border-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#f0f4f0] text-[#2b6e3b] font-bold">
+                          {st.time || `--:--`}
+                        </span>
+                        <span className="font-medium text-[#18201d]">{i + 1}. {st.name}</span>
+                      </div>
+                      <span className="font-semibold text-[#2b6e3b] bg-[#eef7ee] px-2 py-0.5 rounded text-[11px]">
+                        {st.boarded ?? 0} boarding
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  (selectedTripSheet.stops_list || []).map((st, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-[#edf1ed] last:border-0">
+                      <span className="font-medium">{i + 1}. {st}</span>
+                      <span className="text-[#69716d]">Scheduled Stop</span>
+                    </div>
+                  ))
+                )}
               </div>
               <div className="flex items-center justify-between pt-1 text-[11px] text-[#69716d]">
-                <span>Total Expected Riders: <strong>{selectedTripSheet.allocated_riders} students</strong></span>
-                <span>Vehicle Capacity: <strong>{selectedTripSheet.capacity} seats (0 Standing)</strong></span>
+                <span>Total Expected Riders: <strong className="text-[#18201d]">{selectedTripSheet.allocated_riders} students</strong></span>
+                <span>Vehicle Capacity: <strong className="text-[#18201d]">{selectedTripSheet.capacity} seats</strong></span>
               </div>
             </div>
 

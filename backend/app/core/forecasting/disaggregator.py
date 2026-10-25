@@ -57,6 +57,7 @@ def disaggregate_area_demand(area_id: str, area_p50: int, area_p90: int) -> list
             "name": s["name"],
             "lat": s["lat"],
             "lon": s["lon"],
+            "sequence_order": s.get("sequence_order"),
             "area_id": area_id,
             "registered_count": s["registered_count"],
             "p50_riders": stop_p50,

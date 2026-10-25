@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     # No bus may depart before this. Backward scheduling from
     # FIRST_CLASS_ARRIVAL_TIME subtracts real segment durations; without a floor
     # a slow OSRM duration matrix pushes the first pickup before midnight.
-    EARLIEST_ROUTE_DEPARTURE: str = "05:00"
+    EARLIEST_ROUTE_DEPARTURE: str = "06:00"
 
     # Dwell assumptions used only by the heuristic CVRP fallback (used when
     # OR-Tools returns no feasible solution), so its itinerary stays well-formed.

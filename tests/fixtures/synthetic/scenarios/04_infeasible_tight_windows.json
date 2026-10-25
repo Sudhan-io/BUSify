@@ -1,0 +1,30 @@
+{
+  "scenario_id": "SC-04",
+  "description": "Perimeter stops 90km away with an impossible arrival deadline (06:30) violating the 06:00 earliest departure floor.",
+  "depot": {
+    "name": "VSB Engineering College Campus Hub",
+    "lat": 10.9322,
+    "lon": 78.0744
+  },
+  "bus_capacity": 55,
+  "num_buses": 2,
+  "target_arrival_time": "06:15",
+  "stops": [
+    {
+      "stop_id": "SYN_DISTANT_1",
+      "name": "Namakkal Far Border",
+      "lat": 11.2189,
+      "lon": 78.1674,
+      "sequence_order": 1,
+      "p90_riders": 25
+    },
+    {
+      "stop_id": "SYN_DISTANT_2",
+      "name": "Rasipuram Outpost",
+      "lat": 11.4633,
+      "lon": 78.1818,
+      "sequence_order": 2,
+      "p90_riders": 20
+    }
+  ]
+}

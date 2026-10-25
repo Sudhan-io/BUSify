@@ -25,6 +25,15 @@ import L from 'leaflet';
 // Center on College Campus Depot (VSB Engineering College, Karudayampalayam, Karur)
 const DEFAULT_COLLEGE_CENTER = [10.95488, 77.95462];
 
+const escapeHtml = (val) => {
+  return String(val ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 // Custom SVG DivIcon Generator for sleek editorial markers
 const createCustomIcon = (type, color = '#18201d', text = '', isSelected = false, isSequential = false) => {
   if (type === 'depot') {
@@ -40,6 +49,7 @@ const createCustomIcon = (type, color = '#18201d', text = '', isSelected = false
     });
   }
 
+  const safeText = escapeHtml(text);
   const border = isSelected ? '3px solid #ff6b00' : '2px solid #ffffff';
   const scale = isSelected ? 'transform: scale(1.35); z-index: 999;' : '';
   const shadow = isSelected ? 'box-shadow: 0 0 14px rgba(255,107,0,0.7);' : 'box-shadow: 0 1px 4px rgba(0,0,0,0.25);';
@@ -50,7 +60,7 @@ const createCustomIcon = (type, color = '#18201d', text = '', isSelected = false
     className: 'custom-map-marker',
     html: `
       <div style="background: ${color}; width: ${size}px; height: ${size}px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: ${border}; ${shadow} ${scale} font-size: ${isSequential ? '11px' : '10px'}; font-weight: 700; color: #ffffff; cursor: pointer; transition: all 0.2s;">
-        ${text}
+        ${safeText}
       </div>
     `,
     iconSize: [size, size],

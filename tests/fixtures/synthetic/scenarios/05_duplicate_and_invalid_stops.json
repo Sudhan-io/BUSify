@@ -1,0 +1,54 @@
+{
+  "scenario_id": "SC-05",
+  "description": "Robustness test with duplicate coordinates, zero demand, and negative passenger loads.",
+  "depot": {
+    "name": "VSB Engineering College Campus Hub",
+    "lat": 10.9322,
+    "lon": 78.0744
+  },
+  "bus_capacity": 55,
+  "num_buses": 2,
+  "target_arrival_time": "08:30",
+  "stops": [
+    {
+      "stop_id": "SYN_VALID_1",
+      "name": "Legitimate Stop Alpha",
+      "lat": 10.95,
+      "lon": 78.07,
+      "sequence_order": 1,
+      "p90_riders": 30
+    },
+    {
+      "stop_id": "SYN_DUP_1",
+      "name": "Duplicate of Alpha",
+      "lat": 10.95,
+      "lon": 78.07,
+      "sequence_order": 2,
+      "p90_riders": 0
+    },
+    {
+      "stop_id": "SYN_ZERO",
+      "name": "Zero Demand Dormant Stop",
+      "lat": 10.962,
+      "lon": 78.075,
+      "sequence_order": 3,
+      "p90_riders": 0
+    },
+    {
+      "stop_id": "SYN_NEG",
+      "name": "Negative Demand Invalid Stop",
+      "lat": 10.97,
+      "lon": 78.08,
+      "sequence_order": 4,
+      "p90_riders": -5
+    },
+    {
+      "stop_id": "SYN_VALID_2",
+      "name": "Legitimate Stop Beta",
+      "lat": 10.985,
+      "lon": 78.09,
+      "sequence_order": 5,
+      "p90_riders": 25
+    }
+  ]
+}

@@ -45,6 +45,8 @@ Thumbs.db
 # in the image is the wrong long-term design (it should be an Alembic migration
 # plus a seed command); tracked as open item M-24 rather than silently breaking
 # the Docker build.
+*.db-shm
+*.db-wal
 #
 # busify.db holds student attendance rows keyed by HMAC-SHA256 hashes, not raw
 # roll numbers, but it is still operational data. Review before any public push.
