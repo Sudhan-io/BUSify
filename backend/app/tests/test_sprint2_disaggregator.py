@@ -54,9 +54,26 @@ def test_disaggregator_zero_demand_handling():
         assert s["p50_riders"] == 0
         assert s["p90_riders"] == 0
 
-def test_disaggregator_zero_registrations_denominator_fallback(monkeypatch):
-    """Verify that when an area has stops but total registrations is 0, stops receive equal 1/N weights without ZeroDivisionError."""
-    # Temporarily monkeypatch read_sql in disaggregator to simulate stops with 0 registrations
+def test_disaggregator_zero_registrations_with_positive_demand_raises_422(monkeypatch):
+    """Verify that when an area has stops but zero registrations, positive demand cannot be fabricated and raises 422."""
+    import pandas as pd
+    import backend.app.core.forecasting.disaggregator as disagg_mod
+
+    mock_df = pd.DataFrame([
+        {"stop_id": "ST_01", "name": "Stop 1", "lat": 10.9, "lon": 77.9, "sequence_order": 1, "registered_count": 0},
+        {"stop_id": "ST_02", "name": "Stop 2", "lat": 10.91, "lon": 77.91, "sequence_order": 2, "registered_count": 0},
+    ])
+
+    monkeypatch.setattr(pd, "read_sql", lambda *args, **kwargs: mock_df)
+
+    with pytest.raises(HTTPException) as exc_info:
+        disagg_mod.disaggregate_area_demand("AREA_ZERO_REGS", 100, 120)
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "Area AREA_ZERO_REGS has zero student registrations. Cannot disaggregate positive demand."
+
+def test_disaggregator_zero_registrations_with_zero_demand_conserves_zeros(monkeypatch):
+    """Verify that zero registrations with zero demand assigns 0.0 weights and conserves zeros without fabrication."""
     import pandas as pd
     import backend.app.core.forecasting.disaggregator as disagg_mod
 
@@ -69,14 +86,17 @@ def test_disaggregator_zero_registrations_denominator_fallback(monkeypatch):
 
     weights = disagg_mod.get_stop_weights_for_area("AREA_ZERO_REGS")
     assert len(weights) == 2
-    assert weights[0]["weight"] == 0.5
-    assert weights[1]["weight"] == 0.5
+    assert weights[0]["weight"] == 0.0
+    assert weights[1]["weight"] == 0.0
 
-    # Run disaggregation through mocked zero registrations
-    results = disagg_mod.disaggregate_area_demand("AREA_ZERO_REGS", 100, 120)
+    # Run zero-demand disaggregation through mocked zero registrations
+    results = disagg_mod.disaggregate_area_demand("AREA_ZERO_REGS", 0, 0)
     assert len(results) == 2
-    assert results[0]["p50_riders"] == 50
-    assert results[1]["p50_riders"] == 50
+    assert results[0]["p50_riders"] == 0
+    assert results[0]["p90_riders"] == 0
+    assert results[1]["p50_riders"] == 0
+    assert results[1]["p90_riders"] == 0
+
 
 def test_disaggregator_multiple_areas_isolation():
     """Verify multiple areas disaggregate independently with no cross-area demand contamination."""

@@ -127,6 +127,9 @@ In `OfficeDashboard`'s Overview component, replace `"100% seating equity achieve
 In `backend/app/core/forecasting/disaggregator.py`:
 - At the top of `disaggregate_area_demand()`, check if the area has any stops.
 - If `len(stops) == 0`, raise `HTTPException(status_code=422, detail=f"Area {area_id} has no stops. Cannot disaggregate demand.")`.
+- In `get_stop_weights_for_area()`, when `total_area_regs == 0`, assign `df["weight"] = 0.0`.
+- In `disaggregate_area_demand()`, when `total_regs == 0` and demand is positive (`area_p50 > 0` or `area_p90 > 0`), raise `HTTPException(status_code=422, detail=f"Area {area_id} has zero student registrations. Cannot disaggregate positive demand.")`. When demand is zero, return 0 riders per stop without fabricating uniform distribution, conserving zero demand ($0 = 0$). See ADR-013.
+
 
 ---
 

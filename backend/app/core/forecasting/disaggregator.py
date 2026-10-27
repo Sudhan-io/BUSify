@@ -6,7 +6,7 @@ from backend.app.database import engine
 def get_stop_weights_for_area(area_id: str) -> list[dict]:
     """
     Computes the proportional registration share for each stop within a given area.
-    If total registrations are zero, distributes equal weight across all stops.
+    If total registrations are zero, stop weights are 0.0 (no arbitrary uniform fabrication).
     Returns an empty list if the area has no stops.
     """
     query = """
@@ -31,7 +31,7 @@ def get_stop_weights_for_area(area_id: str) -> list[dict]:
     total_area_regs = int(df["registered_count"].sum())
     
     if total_area_regs == 0:
-        df["weight"] = 1.0 / len(df) if len(df) > 0 else 0.0
+        df["weight"] = 0.0
     else:
         df["weight"] = df["registered_count"] / float(total_area_regs)
 
@@ -42,8 +42,10 @@ def disaggregate_area_demand(area_id: str, area_p50: int, area_p90: int) -> list
     Distributes area-level quantile demand forecasts down to each stop
     proportionately to its registered student base.
 
-    Raises HTTPException(422) if the area has no associated stops in the database
-    or if input demand is negative.
+    Raises HTTPException(422) if:
+    - Input demand is negative.
+    - The area has no associated stops in the database.
+    - The area has zero student registrations and positive demand (distribution cannot be justified).
     """
     if area_p50 < 0 or area_p90 < 0:
         raise HTTPException(
@@ -56,6 +58,16 @@ def disaggregate_area_demand(area_id: str, area_p50: int, area_p90: int) -> list
         raise HTTPException(
             status_code=422,
             detail=f"Area {area_id} has no stops. Cannot disaggregate demand."
+        )
+
+    total_regs = sum(s.get("registered_count", 0) for s in stops)
+    has_positive_demand = (area_p50 > 0 or area_p90 > 0)
+
+    # If an area has no registered students, positive demand cannot be empirically distributed
+    if total_regs == 0 and has_positive_demand:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Area {area_id} has zero student registrations. Cannot disaggregate positive demand."
         )
 
     results = []

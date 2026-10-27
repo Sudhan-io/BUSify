@@ -132,3 +132,19 @@
 - Equal non-zero utilization across corridors yields $0.0$ variance and $100.0\%$ consistency.
 - Zero variance proves equal measured utilization under the defined formula; it does not conflate with unconstrained capacity adequacy or total student satisfaction.
 **Status:** Implemented, audited, and verified in Sprint-2 Task 2.5.
+
+---
+
+## ADR-013 — Demand Disaggregation Zero-Registration Fallback and Demand Conservation Policy
+
+**Date:** 2026-10-27 (Sprint-2, Task 2.6 review)
+**Decision:** Prohibit arbitrary uniform demand fabrication (`1.0 / len(stops)`) when an area has stops but zero student registrations. When total student registrations for an area are zero:
+1. If forecast demand is zero (`area_p50 == 0 and area_p90 == 0`), stop weights are set to `0.0` and disaggregation safely returns stops with `p50_riders = 0` and `p90_riders = 0`. Demand is conserved ($0 = 0$) and genuine zero demand is preserved without division error.
+2. If forecast demand is positive (`area_p50 > 0 or area_p90 > 0`), the disaggregator rejects the unresolvable input with `HTTPException(status_code=422, detail=f"Area {area_id} has zero student registrations. Cannot disaggregate positive demand.")`.
+**Rationale:** Resolves DATA-004 / H-11 audit. Tracing the codebase back to commit `69ab6ffd5c` showed uniform weighting was an arbitrary math fallback to prevent `ZeroDivisionError`, not an intentional transit domain policy. Distributing positive passenger demand uniformly across stops without student registrations fabricates fictitious passenger densities (identified in `docs/audit_and_plan.md` R1 as misleading bus drivers). When student registration data cannot justify a spatial distribution, the backend must not fabricate one.
+**Consequence:**
+- Replaces defensive `1.0 / len(df)` with strict domain integrity.
+- Preserves valid non-zero proportional weighting and demand conservation across all operational areas (`AREA_A` through `AREA_E`).
+- Preserves valid zero-demand operations without raising errors.
+- Clearly flags missing or unpopulated student registration data as unprocessable (HTTP 422).
+**Status:** Implemented and verified in Sprint-2 Task 2.6 review.

@@ -312,20 +312,21 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 ## Handoff Note — Sprint-2 Task 2.6 — 2026-10-27
 
 **Completed tasks:**
-- **Task 2.6 (DATA-004 / H-11):** Corrected zero-division and empty-area failure modes in `backend/app/core/forecasting/disaggregator.py`. In `get_stop_weights_for_area()`, safely returned empty list for empty dataframes and applied equal weighting (`1.0 / len(df)`) when total area registrations equal 0, avoiding `ZeroDivisionError`. In `disaggregate_area_demand()`, guarded against empty stop collections by raising `HTTPException(status_code=422, detail=f"Area {area_id} has no stops. Cannot disaggregate demand.")` and guarded against negative demand values.
+- **Task 2.6 (DATA-004 / H-11):** Corrected zero-division, empty-area, and zero-registration failure modes in `backend/app/core/forecasting/disaggregator.py`. In `get_stop_weights_for_area()`, safely returned empty list for empty dataframes and assigned weights `0.0` when total area registrations equal 0 (eliminating arbitrary uniform demand fabrication). In `disaggregate_area_demand()`, guarded against empty stop collections (422), negative demand (422), and zero registrations with positive demand (422) since missing registrations cannot justify an empirical distribution. Safely conserved zero demand ($0=0$) when demand is zero. See ADR-013.
 - **Routing API Integration:** Verified that `GET /api/routes?area_id=...` returns HTTP 422 with a descriptive error when queried for an area with no stop records in the database.
-- **Testing:** Added 8 focused unit and API tests in `backend/app/tests/test_sprint2_disaggregator.py` covering normal demand disaggregation, empty areas (422), zero demand conservation, zero-registration fallback, multi-area isolation, negative demand validation (422), deterministic output, and HTTP endpoint contract compliance.
+- **Testing:** Added 9 focused unit and API tests in `backend/app/tests/test_sprint2_disaggregator.py` covering normal demand disaggregation, empty areas (422), zero demand conservation, zero-registration rejection of positive demand (422), zero-demand zero-registration conservation, multi-area isolation, negative demand validation (422), deterministic output, and HTTP endpoint contract compliance.
 
 **Modified files:**
-- `backend/app/core/forecasting/disaggregator.py` (Zero-division guard and empty stop validation)
-- `backend/app/tests/test_sprint2_disaggregator.py` (New 8 focused tests)
+- `backend/app/core/forecasting/disaggregator.py` (Zero-division guard, empty stop validation, and zero-registration policy)
+- `backend/app/tests/test_sprint2_disaggregator.py` (9 focused tests)
 - `docs/remediation/DEFECT_REGISTER.md` (DATA-004 moved to DONE)
 - `docs/remediation/SPRINTS/SPRINT-02.md` (Task 2.6 marked COMPLETED)
 - `docs/remediation/SPRINT_STATUS.md` (Task 2.6 updated)
+- `docs/remediation/DECISIONS.md` (ADR-013 added)
 
 **Verification results:**
-- Focused Tests: `py -3.12 -m pytest backend/app/tests/test_sprint2_disaggregator.py -v` PASSED (8 passed in 1.74s).
-- Full Regression Suite: `py -3.12 -m pytest backend/app/tests/ -v --tb=short` PASSED (83 passed, 0 failed in 134.45s).
+- Focused Tests: `py -3.12 -m pytest backend/app/tests/test_sprint2_disaggregator.py -v` PASSED (9 passed in 3.31s).
+- Full Regression Suite: `py -3.12 -m pytest backend/app/tests/ -v --tb=short` PASSED (84 passed, 0 failed in 85.36s).
 - Frontend Lint: `npm run lint` PASSED (0 errors, 13 pre-existing warnings).
 - Code Hygiene: `git diff --check` PASSED.
 
