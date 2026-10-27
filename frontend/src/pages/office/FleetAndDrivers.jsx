@@ -115,7 +115,7 @@ export default function FleetAndDrivers() {
                     <td className="font-mono text-xs text-[#69716d]">
                       <span className="flex items-center gap-1">
                         <Phone className="h-3 w-3 text-[#2b6e3b]" />
-                        <span>{bus.driver_phone || '+91 98421 10293'}</span>
+                        <span>{bus.driver_phone || '+91 90000 00001'}</span>
                       </span>
                     </td>
                     <td className="text-xs text-[#18201d]">
@@ -255,7 +255,7 @@ export default function FleetAndDrivers() {
                     required
                     value={busFormData.driver_phone}
                     onChange={(e) => setBusFormData({ ...busFormData, driver_phone: e.target.value })}
-                    placeholder="e.g. +91 98421 10293"
+                    placeholder="e.g. +91 90000 00001"
                     className="w-full px-3 py-2 rounded border border-[#dfe5df] bg-white font-mono text-xs focus:border-[#18201d] outline-none"
                   />
                 </div>

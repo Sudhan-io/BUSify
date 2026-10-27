@@ -83,7 +83,7 @@ def add_bus(payload: BusCreateRequest, db: Session = Depends(get_db)):
         is_active=payload.is_active,
         registration_no=payload.registration_no or f"TN 47 B {payload.bus_id.replace('BUS-', '')}026",
         driver_name=payload.driver_name or "Assigned College Driver",
-        driver_phone=payload.driver_phone or "+91 98421 10293",
+        driver_phone=payload.driver_phone or "+91 90000 00001",
         depot_location=payload.depot_location or "VSB Campus Depot, Karudayampalayam",
         route_name=payload.route_name or f"{default_area_id or 'Zone A'} Kovai Road Radial",
     )

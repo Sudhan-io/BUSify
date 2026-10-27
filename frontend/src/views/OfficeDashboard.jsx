@@ -59,7 +59,7 @@ export default function OfficeDashboard({
     registration_no: '',
     seats: 55,
     driver_name: '',
-    driver_phone: '+91 98421 10293',
+    driver_phone: '+91 90000 00001',
     default_area_id: 'AREA_A',
     depot_location: 'VSB Main Campus Depot, Karudayampalayam',
     route_name: 'Zone A - Karudayampalayam & Kovai Road Express',
@@ -171,7 +171,7 @@ export default function OfficeDashboard({
       registration_no: `TN 47 B ${2000 + (busesList.length || 0) * 12}`,
       seats: 55,
       driver_name: '',
-      driver_phone: '+91 98421 10293',
+      driver_phone: '+91 90000 00001',
       default_area_id: 'AREA_A',
       depot_location: 'VSB Campus Depot, Karudayampalayam',
       route_name: 'Zone A - Karudayampalayam & Kovai Road Express',
@@ -188,7 +188,7 @@ export default function OfficeDashboard({
       registration_no: bus.registration_no || '',
       seats: bus.seats || 55,
       driver_name: bus.driver_name || '',
-      driver_phone: bus.driver_phone || '+91 98421 10293',
+      driver_phone: bus.driver_phone || '+91 90000 00001',
       default_area_id: bus.default_area_id || 'AREA_A',
       depot_location: bus.depot_location || 'VSB Campus Depot, Karudayampalayam',
       route_name: bus.route_name || '',
@@ -547,7 +547,7 @@ export default function OfficeDashboard({
                   <td className="font-mono text-xs text-[#69716d]">
                     <span className="flex items-center gap-1">
                       <Phone className="h-3 w-3 text-[#2b6e3b]" />
-                      <span>{bus.driver_phone || '+91 98421 10293'}</span>
+                      <span>{bus.driver_phone || '+91 90000 00001'}</span>
                     </span>
                   </td>
                   <td className="text-xs text-[#18201d]">
@@ -1262,7 +1262,7 @@ export default function OfficeDashboard({
                     required
                     value={busFormData.driver_phone}
                     onChange={(e) => setBusFormData({ ...busFormData, driver_phone: e.target.value })}
-                    placeholder="e.g. +91 98421 10293"
+                    placeholder="e.g. +91 90000 00001"
                     className="w-full px-3 py-2 rounded border border-[#dfe5df] bg-white font-mono text-xs focus:border-[#18201d] outline-none"
                   />
                 </div>

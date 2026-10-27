@@ -31,12 +31,12 @@ class Settings(BaseSettings):
     )
 
     TRANSPORT_OFFICER_PASSWORD: str = Field(
-        default="vsb_transport_dev_2026",
-        description="Password for transport officer login (set in .env)",
+        ...,
+        description="Password for transport officer login (must be set in .env).",
     )
     ADMIN_PASSWORD: str = Field(
-        default="vsb_admin_dev_2026",
-        description="Password for system administrator login (set in .env)",
+        ...,
+        description="Password for system administrator login (must be set in .env).",
     )
 
     # ─── Campus Depot Geolocation ──────────────────────────────────────────────

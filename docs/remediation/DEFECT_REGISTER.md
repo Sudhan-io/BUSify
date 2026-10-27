@@ -1,14 +1,13 @@
 # BUSify — Defect Register
 
 **Stable IDs.** Move items only when DONE + verified. Add new items at the bottom of each severity block.
-**Reference:** `docs/OUTSTANDING_ISSUES.md` for full text and history of already-fixed items.
 
 ---
 
 ## How to use
 
 1. Pick by severity and sprint dependency.
-2. Do not start work without reading the full description in `OUTSTANDING_ISSUES.md`.
+2. Ensure acceptance criteria and architectural contracts are met.
 3. When done, record exact verification evidence in the Status cell and move to the DONE section.
 
 ---
@@ -94,7 +93,7 @@
 
 ## DONE (do not revert)
 
-See `docs/OUTSTANDING_ISSUES.md` §2 for full descriptions and verification evidence.
+Verified items with recorded regression test evidence:
 
 | ID | Title | Verified |
 |:---|:---|:---|

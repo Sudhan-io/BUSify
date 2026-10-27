@@ -23,7 +23,7 @@ class Bus(Base):
             "is_active": self.is_active,
             "registration_no": getattr(self, "registration_no", None) or f"TN 47 B {self.bus_id.replace('BUS-', '')}024",
             "driver_name": getattr(self, "driver_name", None) or "Assigned College Driver",
-            "driver_phone": getattr(self, "driver_phone", None) or "+91 98421 10293",
+            "driver_phone": getattr(self, "driver_phone", None) or "+91 90000 00001",
             "depot_location": getattr(self, "depot_location", None) or "VSB Campus Depot, Karudayampalayam",
             "route_name": getattr(self, "route_name", None) or f"{self.default_area_id or 'Zone A'} Kovai Road Radial",
         }
