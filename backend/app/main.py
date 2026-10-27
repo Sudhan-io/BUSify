@@ -1,19 +1,33 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.config import settings
 from backend.app.api import api_router
 from backend.app.auth.routes_auth import router as auth_router
-from backend.app.database import engine, Base
-
-# Ensure all tables are created on startup (incl. student_attendance and institutions)
-import backend.app.models  # noqa: F401 — registers all models with Base.metadata
-Base.metadata.create_all(bind=engine)
-
-# Idempotently ensure default institution exists
-from backend.app.database import SessionLocal
+from backend.app.database import engine, Base, SessionLocal
+from backend.app.api.routes_buses import ensure_bus_columns
+from backend.app.models.plan import ensure_plan_columns
 from backend.app.models.institution import seed_default_institutions
-with SessionLocal() as _init_db:
-    seed_default_institutions(_init_db)
+import backend.app.models  # noqa: F401 — registers all models with Base.metadata
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application startup and shutdown lifespan handler (Resolves M-11 and M-12).
+    Ensures all database tables, columns, and seed institutions are initialized
+    cleanly inside the server lifecycle rather than as side-effects at import time.
+    """
+    # 1. Ensure all database tables exist
+    Base.metadata.create_all(bind=engine)
+    # 2. Ensure dynamic columns exist on SQLite
+    ensure_bus_columns()
+    ensure_plan_columns()
+    # 3. Seed default institutions idempotently
+    with SessionLocal() as init_db:
+        seed_default_institutions(init_db)
+    yield
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -24,7 +38,9 @@ app = FastAPI(
     version=settings.VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
+
 
 # CORS — restricted to declared origins (never wildcard in production)
 app.add_middleware(

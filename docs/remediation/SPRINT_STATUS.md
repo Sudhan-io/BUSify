@@ -25,7 +25,7 @@
 | Sprint-2 | Data integrity, institution persistence | **DONE** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | None | Build: 0 errors; Lint: 0 errors; Pytest: 84 passed, 0 failed in 95.57s |
 | Sprint-3 | Daily Planning workflow | **DONE** | Guided 4-step flow; constraint display; allocation review; no conflicting baselines | None | Build: 0 errors; Lint: 0 errors; Pytest: 87 passed, 0 failed |
 | Sprint-4 | Dispatch Manifest — real buses, approval guard | **DONE** | Manifest uses DB buses/drivers; table paginated; dispatch endpoint creates Plan; button disabled without valid manifest | None | Build: 0 errors; Lint: 0 errors; Pytest: 94 passed, 0 failed |
-| Sprint-5 | Fleet & Drivers + Students & Demand management | **NOT STARTED** | Fleet CRUD in dedicated page; student demand aggregation | Requires Sprint-1, Sprint-2 | — |
+| Sprint-5 | Fleet & Drivers + Students & Demand management | **DONE** | Fleet CRUD, driver conflict guard, student demand aggregation, lifespan cleanup | None | Build: 0 errors; Lint: 0 errors; Pytest: 103 passed, 0 failed in 128.72s |
 | Sprint-6 | Routes & Map correctness | **NOT STARTED** | Arrival time field name fixed; stop detail fields correct; zone metadata consistent; coordinates canonical | Requires Sprint-2 | — |
 | Sprint-7 | Student Commuter experience | **NOT STARTED** | Pass shows correct occupancy; route sections clear; no pre-auth roll selector exposure | Requires Sprint-5, Sprint-2 | — |
 | Sprint-8 | Security, accessibility, deployment | **NOT STARTED** | All forms keyboard-accessible; all modals have focus trap; Docker paths fixed; requirements consolidated; regression suite passes | Requires all prior | — |
@@ -398,3 +398,90 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 
 **Outstanding defects from this sprint:** None.
 **Next task:** Sprint-4 Task 4.1 — Dispatch Manifest: real buses and drivers from DB, pagination for >10 rows (M-09), approval guard & Plan model persistence (M-13). Follow `docs/remediation/SPRINTS/SPRINT-04.md`.
+
+---
+
+## Sprint-4 Detail
+
+**Objective:** Transform Dispatch Manifest into a reliable, database-backed dispatch workflow. Source vehicles and drivers from the authoritative database, implement Plan model persistence and approval safeguards (`M-13`, `H-21`), and add manifest table pagination (`M-09`).
+
+**Status:** DONE (Verified: 94 passed, 0 failed in 136.85s).
+
+**Key tasks:**
+1. [x] Sourced active buses and drivers from database `buses` table in `routes_workflow.py`.
+2. [x] Implemented Plan model persistence with `scenario`, `status`, and `total_riders` columns and idempotent migration.
+3. [x] Implemented `POST /api/workflow/plan/approve` guarded by `require_admin` and `GET /api/workflow/plan/status`.
+4. [x] Replaced hardcoded `.slice(0, 15)` in `DispatchManifest.jsx` with full client pagination (10, 25, 50, All).
+5. [x] Added 7 dedicated tests in `backend/app/tests/test_sprint4_manifest_and_plan.py`.
+
+---
+
+## Handoff Note — Sprint-4 — 2026-10-27
+
+**Completed tasks:**
+- **M-09:** Added responsive pagination controls, page size selector, and item counters to `DispatchManifest.jsx`.
+- **M-13 / H-21:** Added transactional plan approval endpoint and `Plan` database persistence.
+- **Verification:** Pytest 94 passed, 0 failed. Vite build clean in 10.95s.
+
+**Modified files:**
+- `backend/app/api/routes_workflow.py`
+- `backend/app/models/plan.py`
+- `backend/app/tests/test_sprint4_manifest_and_plan.py`
+- `frontend/src/layouts/OfficeLayout.jsx`
+- `frontend/src/pages/office/DispatchManifest.jsx`
+- `frontend/src/services/api.js`
+- `docs/remediation/SPRINTS/SPRINT-04.md`
+- `docs/remediation/DEFECT_REGISTER.md`
+- `docs/remediation/SPRINT_STATUS.md`
+
+---
+
+## Sprint-5 Detail
+
+**Objective:** Deliver authoritative, database-backed fleet and driver management, student registration and demand summaries, lifecycle startup hygiene (M-11, M-12), and file upload format accuracy (M-10).
+
+**Status:** DONE (Verified: 103 passed, 0 failed in 128.72s).
+
+**Key tasks:**
+1. [x] **M-11 & M-12 (Lifespan Startup):** Created FastAPI `lifespan` async context manager in `main.py`. Removed module import side-effects in `routes_buses.py` and `models/plan.py`.
+2. [x] **Phase 2 (Fleet Management):** Implemented bus filtering (`is_active`, `area_id`, `search`), seat validation bounds (10–120), and plan deletion protection (`DELETE` returns HTTP 409 if bus is in approved plan).
+3. [x] **Phase 3 (Driver Management):** Implemented driver conflict prevention (rejects assigning the same driver to multiple active vehicles with HTTP 400), and added `GET /api/buses/drivers` roster endpoint.
+4. [x] **Phase 4 (Student and Demand Management):** Sourced student counts per stop from `registrations` table in `GET /api/stops` (2,200 total), added `GET /api/workflow/students/registrations` with pagination and SHA-256 masking, added `GET /api/workflow/demand-summary`, and protected approved dispatch plans during student opt-outs.
+5. [x] **M-10 (Upload Format Alignment):** Corrected UI upload text and file input accept attributes in `OfficeLayout.jsx` and `OfficeDashboard.jsx` to accurately state `.CSV, .TXT`, and added binary `.xlsx` rejection in `upload_stops_csv` with clear guidance.
+6. [x] **Testing:** Added 9 focused tests in `backend/app/tests/test_sprint5_fleet_driver_student.py` and verified full 103-test backend suite.
+
+---
+
+## Handoff Note — Sprint-5 — 2026-10-27
+
+**Completed tasks:**
+- **M-10, M-11, M-12:** Resolved startup lifespan execution, column migrations, and file upload advertisement.
+- **Fleet, Drivers, Students, Demand:** Implemented full CRUD, conflict guards, plan deletion safeguards, stop registration counts, and masked commuter queries.
+- **Verification:**
+  - Focused Pytest: 9 passed, 0 failed in 4.06s.
+  - Full Regression Suite: 103 passed, 0 failed in 128.72s.
+  - Frontend Lint: 0 errors (13 pre-existing non-blocking warnings).
+  - Frontend Build: Clean production bundle in 12.19s.
+  - Code Hygiene: `git diff --check` clean (0 errors).
+
+**Modified files:**
+- `backend/app/api/routes_buses.py`
+- `backend/app/api/routes_stops.py`
+- `backend/app/api/routes_workflow.py`
+- `backend/app/main.py`
+- `backend/app/models/plan.py`
+- `backend/app/models/stop.py`
+- `backend/app/schemas/__init__.py`
+- `backend/app/tests/test_sprint5_fleet_driver_student.py`
+- `frontend/src/layouts/OfficeLayout.jsx`
+- `frontend/src/pages/office/FleetAndDrivers.jsx`
+- `frontend/src/pages/office/StudentsAndDemand.jsx`
+- `frontend/src/services/api.js`
+- `frontend/src/views/OfficeDashboard.jsx`
+- `docs/remediation/SPRINTS/SPRINT-05.md`
+- `docs/remediation/DEFECT_REGISTER.md`
+- `docs/remediation/DECISIONS.md`
+- `docs/remediation/SPRINT_STATUS.md`
+
+**Outstanding defects from this sprint:** None.
+**Next task:** Sprint-6 — Routes & Map correctness: arrival time field name fix (`MAP-001`), stop detail fields (`MAP-002`), zone metadata consistency (`M-01`), and canonical coordinates.

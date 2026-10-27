@@ -67,9 +67,6 @@
 | **M-05** | `backend/Dockerfile` DB path mismatch | Confirmed | `backend/Dockerfile` | Sprint-8 |
 | **M-06** | `frontend/Dockerfile` build arg `VITE_API_BASE_URL` never reaches client | Confirmed | `frontend/Dockerfile`, `services/api.js:3` | Sprint-8 |
 | **M-07** | Two divergent `requirements.txt` files | Confirmed | root + `backend/` | Sprint-0 |
-| **M-10** | `.xlsx` advertised in UI but file input only accepts `.csv,.txt` | Confirmed | `OfficeDashboard.jsx:720,789` | Sprint-5 |
-| **M-11** | `base.metadata.create_all()` at import time — should be lifespan handler | Confirmed | `main.py:10` | Sprint-8 |
-| **M-12** | Raw `ALTER TABLE` migration at import in `routes_buses.py` | Confirmed | `routes_buses.py:59` | Sprint-8 |
 | **M-17** | `H-04`: N+1 serial OSRM calls in CSV benchmark (one per bus) | Confirmed | `routes_workflow.py:469,533` | Sprint-5 |
 
 ---
@@ -128,3 +125,6 @@ Verified items with recorded regression test evidence:
 | M-03 | Clarified CSV benchmark route computation as an angular polar-sweep clustering heuristic for fast upload feedback vs. full CVRP MIP | Verified in Sprint-3: documented in `routes_workflow.py:600-605`, tests passing |
 | M-09 | Replaced hardcoded `.slice(0,10)` with full responsive client-side pagination (10, 25, 50, All), item counts, and zone filtering in `DispatchManifest.jsx` | Verified in Sprint-4: `npm run lint` clean, build clean, table navigates all records |
 | M-13 (H-21) | `Plan` model wired with read/write paths, schema migration, authenticated approval endpoint `POST /api/workflow/plan/approve`, duplicate assignment guards, and atomic persistence | Verified in Sprint-4: 7 focused tests passing in `test_sprint4_manifest_and_plan.py` + regression suite |
+| M-10 | Corrected false advertisement of `.xlsx` in upload modal; clarified UI to `.CSV, .TXT`; rejected binary workbook uploads with descriptive HTTP 400 | Verified in Sprint-5: `test_upload_csv_rejects_binary_xlsx` passing + frontend build |
+| M-11 | Moved `Base.metadata.create_all()` and `seed_default_institutions()` into FastAPI `@asynccontextmanager` `lifespan` handler | Verified in Sprint-5: clean app lifespan startup, 0 import side-effects |
+| M-12 | Moved raw import-time `ALTER TABLE` migrations for `buses` and `plans` into clean lifespan startup functions (`ensure_bus_columns()`, `ensure_plan_columns()`) | Verified in Sprint-5: lifespan startup verified across 103 backend regression tests |

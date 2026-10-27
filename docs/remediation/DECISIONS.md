@@ -135,16 +135,13 @@
 
 ---
 
-## ADR-013 — Demand Disaggregation Zero-Registration Fallback and Demand Conservation Policy
+## ADR-014 — Lifespan Application Startup, Driver Conflict Prevention, and Plan Deletion Protection
 
-**Date:** 2026-10-27 (Sprint-2, Task 2.6 review)
-**Decision:** Prohibit arbitrary uniform demand fabrication (`1.0 / len(stops)`) when an area has stops but zero student registrations. When total student registrations for an area are zero:
-1. If forecast demand is zero (`area_p50 == 0 and area_p90 == 0`), stop weights are set to `0.0` and disaggregation safely returns stops with `p50_riders = 0` and `p90_riders = 0`. Demand is conserved ($0 = 0$) and genuine zero demand is preserved without division error.
-2. If forecast demand is positive (`area_p50 > 0 or area_p90 > 0`), the disaggregator rejects the unresolvable input with `HTTPException(status_code=422, detail=f"Area {area_id} has zero student registrations. Cannot disaggregate positive demand.")`.
-**Rationale:** Resolves DATA-004 / H-11 audit. Tracing the codebase back to commit `69ab6ffd5c` showed uniform weighting was an arbitrary math fallback to prevent `ZeroDivisionError`, not an intentional transit domain policy. Distributing positive passenger demand uniformly across stops without student registrations fabricates fictitious passenger densities (identified in `docs/audit_and_plan.md` R1 as misleading bus drivers). When student registration data cannot justify a spatial distribution, the backend must not fabricate one.
-**Consequence:**
-- Replaces defensive `1.0 / len(df)` with strict domain integrity.
-- Preserves valid non-zero proportional weighting and demand conservation across all operational areas (`AREA_A` through `AREA_E`).
-- Preserves valid zero-demand operations without raising errors.
-- Clearly flags missing or unpopulated student registration data as unprocessable (HTTP 422).
-**Status:** Implemented and verified in Sprint-2 Task 2.6 review.
+**Date:** 2026-10-27 (Sprint-5)
+**Decision:**
+1. **Lifespan Startup (`main.py`):** Move `Base.metadata.create_all()`, SQLite dynamic column additions (`ensure_bus_columns()`, `ensure_plan_columns()`), and idempotent institution seeding (`seed_default_institutions()`) into a FastAPI `@asynccontextmanager` `lifespan` handler. Prohibit executing database DDL and table migrations as top-level module import side-effects. (Resolves M-11, M-12).
+2. **Driver Conflict Prevention (`routes_buses.py`):** Prevent any human driver (`driver_name`) from being assigned to more than one active vehicle (`is_active == True`) simultaneously for college departure trips. Reject conflicting driver assignments with HTTP 400 Bad Request.
+3. **Dispatch Integrity Protection (`routes_buses.py`):** Prevent hard deletion of vehicles (`DELETE /api/buses/{bus_id}`) that are referenced in approved dispatch records in `plans`. Return HTTP 409 Conflict with guidance to deactivate the vehicle instead (`is_active=False`) to preserve dispatch history and auditability.
+4. **Student Registrations & Demand Exposure:** Expose authoritative student registration counts per stop directly via `GET /api/stops` and provide paginated commuter queries (`GET /api/workflow/students/registrations`) using SHA-256 hash masking to protect PII. Preserve approved dispatch plans during student opt-out preference updates.
+**Rationale:** Eliminates import-time database side-effects (M-11, M-12), ensures physical vehicle and driver assignment feasibility, and guarantees audit trail preservation across the transit operations lifecycle.
+**Status:** Implemented and verified in Sprint-5.

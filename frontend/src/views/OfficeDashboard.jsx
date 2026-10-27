@@ -808,7 +808,7 @@ export default function OfficeDashboard({
                 <span className="kicker" style={{ margin: 0, fontSize: '11px' }}>
                   EXACT EXCEL COLUMNS & DATA STRUCTURE
                 </span>
-                <span className="text-[11px] text-[#2b6e3b] font-medium">Supported formats: .CSV, .XLSX, .TXT</span>
+                <span className="text-[11px] text-[#2b6e3b] font-medium">Supported formats: .CSV, .TXT</span>
               </div>
               <div className="border border-[#dfe5df] rounded-[8px] overflow-hidden">
                 <table className="editorial-table text-xs">
@@ -874,7 +874,7 @@ export default function OfficeDashboard({
                 <div className="flex items-center gap-2">
                   <label className="coral-button text-xs cursor-pointer flex items-center gap-1.5">
                     <Upload className="h-3.5 w-3.5" />
-                    <span>Upload CSV / Excel File</span>
+                    <span>Upload CSV / Text File</span>
                     <input
                       type="file"
                       accept=".csv,.txt"

@@ -8,6 +8,7 @@ class StopSchema(BaseModel):
     lon: float
     area_id: str
     sequence_order: int
+    student_count: Optional[int] = 0
 
 class StopCreateRequest(BaseModel):
     stop_id: str

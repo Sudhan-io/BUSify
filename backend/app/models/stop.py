@@ -12,7 +12,7 @@ class Stop(Base):
     area_id = Column(String(32), nullable=False, index=True)
     sequence_order = Column(Integer, default=0)
 
-    def to_dict(self):
+    def to_dict(self, student_count: int = 0):
         return {
             "stop_id": self.stop_id,
             "name": self.name,
@@ -20,4 +20,5 @@ class Stop(Base):
             "lon": self.lon,
             "area_id": self.area_id,
             "sequence_order": self.sequence_order,
+            "student_count": getattr(self, "student_count", student_count),
         }

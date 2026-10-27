@@ -97,8 +97,21 @@ export const api = {
     return res.data;
   },
 
-  getBuses: async () => {
-    const res = await apiClient.get('/buses');
+  getBuses: async (areaId = null, isActive = null, search = null) => {
+    const params = {};
+    if (areaId && areaId !== 'ALL') params.area_id = areaId;
+    if (isActive !== null && isActive !== undefined) params.is_active = isActive;
+    if (search && search.trim()) params.search = search.trim();
+    const res = await apiClient.get('/buses', { params });
+    return res.data;
+  },
+
+  getDrivers: async (isActive = null, areaId = null, search = null) => {
+    const params = {};
+    if (isActive !== null && isActive !== undefined) params.is_active = isActive;
+    if (areaId && areaId !== 'ALL') params.area_id = areaId;
+    if (search && search.trim()) params.search = search.trim();
+    const res = await apiClient.get('/buses/drivers', { params });
     return res.data;
   },
 
@@ -176,6 +189,22 @@ export const api = {
   getPlanStatus: async (date, slot = 'morning') => {
     const params = { date, slot };
     const res = await apiClient.get('/workflow/plan/status', { params });
+    return res.data;
+  },
+
+  // Student Registrations & Demand Summary
+  getStudentRegistrations: async (areaId = null, stopId = null, search = null, page = 1, pageSize = 50) => {
+    const params = { page, page_size: pageSize };
+    if (areaId && areaId !== 'ALL') params.area_id = areaId;
+    if (stopId) params.stop_id = stopId;
+    if (search && search.trim()) params.search = search.trim();
+    const res = await apiClient.get('/workflow/students/registrations', { params });
+    return res.data;
+  },
+
+  getDemandSummary: async (date = null) => {
+    const params = date ? { date } : {};
+    const res = await apiClient.get('/workflow/demand-summary', { params });
     return res.data;
   },
 

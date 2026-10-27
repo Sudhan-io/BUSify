@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
   Plus,
@@ -7,6 +7,7 @@ import {
   Phone,
   CheckCircle2,
   X,
+  Search,
   RefreshCw,
   Check
 } from 'lucide-react';
@@ -31,6 +32,23 @@ export default function FleetAndDrivers() {
     handleDeleteBus
   } = useOutletContext();
 
+  const [zoneFilter, setZoneFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const activeCount = (busesList || []).filter(b => b.is_active !== false).length;
+  const inactiveCount = (busesList || []).length - activeCount;
+
+  const filteredBuses = (busesList || []).filter(bus => {
+    const matchesZone = zoneFilter === 'ALL' || bus.default_area_id === zoneFilter;
+    const q = searchQuery.trim().toLowerCase();
+    const matchesSearch = !q ||
+      (bus.bus_id && bus.bus_id.toLowerCase().includes(q)) ||
+      (bus.driver_name && bus.driver_name.toLowerCase().includes(q)) ||
+      (bus.registration_no && bus.registration_no.toLowerCase().includes(q)) ||
+      (bus.route_name && bus.route_name.toLowerCase().includes(q));
+    return matchesZone && matchesSearch;
+  });
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -43,10 +61,18 @@ export default function FleetAndDrivers() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <span className="badge badge-sage text-xs">
+            {activeCount} Active
+          </span>
+          {inactiveCount > 0 && (
+            <span className="badge badge-coral text-xs">
+              {inactiveCount} Maintenance
+            </span>
+          )}
           <button
             id="btn-add-bus-page"
             onClick={handleOpenAddBus}
-            className="coral-button text-xs whitespace-nowrap flex items-center gap-1.5"
+            className="coral-button text-xs whitespace-nowrap flex items-center gap-1.5 ml-2"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Add New Bus</span>
@@ -73,12 +99,40 @@ export default function FleetAndDrivers() {
 
       {/* Fleet Table Card */}
       <div className="card space-y-4">
-        <div className="flex items-center justify-between border-b border-[#edf1ed] pb-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#edf1ed] pb-3">
           <div>
             <h3 className="card-title text-base font-bold">Active Fleet Specifications</h3>
-            <p className="text-xs text-[#69716d]">Physical vehicle sizing and driver assignments.</p>
+            <p className="text-xs text-[#69716d]">Physical vehicle sizing, corridor associations, and assigned drivers.</p>
           </div>
-          <span className="badge badge-sage text-xs">{busesList.length} Registered Buses</span>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search className="h-3.5 w-3.5 text-[#69716d] absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search bus, driver, plate..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 pr-3 py-1.5 text-xs rounded border border-[#dfe5df] bg-white focus:outline-none focus:border-[#18201d]"
+              />
+            </div>
+
+            <div className="flex items-center gap-1 overflow-x-auto min-w-0">
+              {['ALL', 'AREA_A', 'AREA_B', 'AREA_C', 'AREA_D', 'AREA_E'].map((area) => (
+                <button
+                  key={area}
+                  onClick={() => setZoneFilter(area)}
+                  className={`px-2.5 py-1 text-xs rounded font-semibold transition-colors ${
+                    zoneFilter === area
+                      ? 'bg-[#18201d] text-white'
+                      : 'bg-[#ebeee8] text-[#69716d] hover:text-[#18201d]'
+                  }`}
+                >
+                  {area === 'ALL' ? 'All Zones' : area.replace('AREA_', 'Zone ')}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -97,14 +151,14 @@ export default function FleetAndDrivers() {
               </tr>
             </thead>
             <tbody>
-              {busesList.length === 0 ? (
+              {filteredBuses.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="text-center py-6 text-xs text-[#69716d]">
-                    No buses registered in fleet.
+                    No buses match the selected zone and search criteria.
                   </td>
                 </tr>
               ) : (
-                busesList.map((bus) => (
+                filteredBuses.map((bus) => (
                   <tr key={bus.bus_id}>
                     <td className="font-bold text-[#18201d] font-mono">{bus.bus_id}</td>
                     <td className="font-mono text-xs text-[#69716d]">{bus.registration_no || 'TN 47 B 2026'}</td>
@@ -153,6 +207,7 @@ export default function FleetAndDrivers() {
           </table>
         </div>
       </div>
+
 
       {/* Add / Edit Bus Modal */}
       {showBusModal && (

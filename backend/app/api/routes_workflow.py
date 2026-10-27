@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, HTTPException, Body, UploadFile, File, Form, Response, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel, Field
 from backend.app.database import get_db
 from backend.app.auth.auth_service import require_admin
@@ -561,11 +562,22 @@ def toggle_student_opt_out(
         StudentAttendance.traveling_today == False,  # noqa: E712
     ).count()
 
+    # Check whether an approved dispatch plan already exists for this date.
+    # Daily preference updates are faithfully recorded, but existing locked plans are preserved.
+    approved_plan = db.query(Plan).filter(
+        Plan.date == target_date_str,
+        Plan.slot == "morning",
+        Plan.status == "APPROVED"
+    ).first()
+    plan_locked = approved_plan is not None
+
     msg = (
         f"Seat re-confirmed for {roll_no}."
         if payload.traveling_today
         else f"Absence recorded for {roll_no}. Seat released for peers."
     )
+    if plan_locked:
+        msg += " (Notice: Active dispatch plan for today is approved and locked.)"
 
     return {
         "student_roll": roll_no,
@@ -573,7 +585,133 @@ def toggle_student_opt_out(
         "traveling_today": payload.traveling_today,
         "message": msg,
         "total_active_opt_outs": total_opt_outs,
+        "plan_locked": plan_locked,
     }
+
+
+@router.get("/students/registrations", tags=["College & Student Workflows"])
+def list_student_registrations(
+    area_id: Optional[str] = Query(None, description="Filter registrations by corridor zone"),
+    stop_id: Optional[str] = Query(None, description="Filter registrations by specific stop ID"),
+    search: Optional[str] = Query(None, description="Search by stop name or masked ID"),
+    page: int = Query(default=1, ge=1, description="Page number"),
+    page_size: int = Query(default=50, ge=1, le=200, description="Items per page"),
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieves authoritative student registrations mapped to transit stops and corridors.
+    Enforces student privacy by masking student SHA-256 hashes to prevent bulk PII exposure.
+    """
+    query = db.query(
+        Registration.reg_id,
+        Registration.student_hash,
+        Registration.stop_id,
+        Registration.academic_year,
+        Stop.name.label("stop_name"),
+        Stop.area_id.label("area_id")
+    ).join(Stop, Registration.stop_id == Stop.stop_id)
+
+    if area_id is not None:
+        query = query.filter(Stop.area_id == area_id)
+    if stop_id is not None:
+        query = query.filter(Registration.stop_id == stop_id)
+    if search:
+        term = f"%{search.strip().lower()}%"
+        query = query.filter(
+            func.lower(Stop.name).like(term) |
+            func.lower(Registration.stop_id).like(term)
+        )
+
+    total_count = query.count()
+    offset = (page - 1) * page_size
+    rows = query.order_by(Registration.reg_id).offset(offset).limit(page_size).all()
+
+    items = []
+    for r in rows:
+        masked_hash = f"{r.student_hash[:8].upper()}..."
+        items.append({
+            "reg_id": r.reg_id,
+            "masked_student_id": masked_hash,
+            "stop_id": r.stop_id,
+            "stop_name": r.stop_name,
+            "area_id": r.area_id,
+            "academic_year": r.academic_year or "2025-2026",
+        })
+
+    return {
+        "total_registrations": total_count,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": (total_count + page_size - 1) // page_size if total_count > 0 else 1,
+        "registrations": items,
+    }
+
+
+@router.get("/demand-summary", tags=["College & Student Workflows"])
+def get_demand_summary(
+    date: str = Query(default=None, description="Forecast target date (YYYY-MM-DD)"),
+    db: Session = Depends(get_db)
+):
+    """
+    Aggregates authoritative commuter demand, stop distribution, and registration volumes
+    across all transit zones.
+    """
+    target_date = date or datetime.now().date().strftime("%Y-%m-%d")
+
+    # 1. Total registrations per area
+    reg_counts = dict(
+        db.query(Stop.area_id, func.count(Registration.reg_id))
+        .join(Registration, Stop.stop_id == Registration.stop_id)
+        .group_by(Stop.area_id)
+        .all()
+    )
+
+    # 2. Stop counts per area
+    stop_counts = dict(
+        db.query(Stop.area_id, func.count(Stop.stop_id))
+        .group_by(Stop.area_id)
+        .all()
+    )
+
+    # 3. Active buses per area
+    bus_counts = dict(
+        db.query(Bus.default_area_id, func.count(Bus.bus_id))
+        .filter(Bus.is_active == True)
+        .group_by(Bus.default_area_id)
+        .all()
+    )
+
+    areas_summary = []
+    total_reg = 0
+    total_stops_count = 0
+    for a_id in sorted(AREAS_CONFIG.keys()):
+        cfg = AREAS_CONFIG[a_id]
+        r_count = reg_counts.get(a_id, 0)
+        s_count = stop_counts.get(a_id, 0)
+        b_count = bus_counts.get(a_id, 0)
+        pred = forecaster.predict_for_date(target_date, a_id)
+
+        total_reg += r_count
+        total_stops_count += s_count
+        areas_summary.append({
+            "area_id": a_id,
+            "area_name": cfg.get("name", a_id),
+            "registered_commuters": r_count,
+            "stops_count": s_count,
+            "assigned_active_buses": b_count,
+            "baseline_buses": BASELINE_ALLOCATION.get(a_id, 10),
+            "p50_demand": pred.get("p50_demand", 0),
+            "p90_demand": pred.get("p90_demand", 0),
+        })
+
+    return {
+        "date": target_date,
+        "total_registered_commuters": total_reg,
+        "total_stops": total_stops_count,
+        "total_zones": len(AREAS_CONFIG),
+        "areas": areas_summary,
+    }
+
 
 # =====================================================================
 # SUGGESTIONS 1 & 2: ADMIN CSV UPLOAD, AUTO-GEOCODING & BENCHMARK
@@ -940,6 +1078,12 @@ async def upload_stops_csv(
             raise HTTPException(
                 status_code=413,
                 detail=f"Uploaded file exceeds maximum allowed size of {MAX_CSV_BYTES // (1024*1024)}MB."
+            )
+        filename_lower = (file.filename or "").lower()
+        if filename_lower.endswith(".xlsx") or filename_lower.endswith(".xls") or raw_bytes.startswith(b"PK\x03\x04"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Excel binary workbook (.xlsx/.xls) is not supported directly. Please export or save your workbook as a CSV (.csv) or tab-delimited text (.txt) file before uploading."
             )
         content = raw_bytes.decode("utf-8", errors="replace")
     elif csv_text is not None and csv_text.strip():

@@ -31,7 +31,7 @@ class Plan(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
-def _ensure_plan_columns():
+def ensure_plan_columns():
     """Ensure optional plan management columns exist in SQLite database (Resolves M-13 / H-21)."""
     try:
         with engine.connect() as conn:
@@ -52,4 +52,4 @@ def _ensure_plan_columns():
     except Exception as e:
         print(f"Plan column migration notice: {e}")
 
-_ensure_plan_columns()
+_ensure_plan_columns = ensure_plan_columns

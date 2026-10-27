@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from backend.app.database import get_db
 from backend.app.models.stop import Stop
+from backend.app.models.registration import Registration
 from backend.app.schemas import StopSchema, StopCreateRequest, StopUpdateRequest
 from backend.app.auth.auth_service import require_admin
 from backend.app.core.data.synthetic_generator import AREAS_CONFIG
@@ -16,10 +19,29 @@ def _validate_area(area_id: str):
         )
 
 @router.get("/stops", response_model=list[StopSchema])
-def list_all_stops(db: Session = Depends(get_db)):
-    """Retrieves all designated campus bus stops with geocoordinates."""
-    stops = db.query(Stop).order_by(Stop.area_id, Stop.sequence_order).all()
-    return [s.to_dict() for s in stops]
+def list_all_stops(
+    area_id: Optional[str] = Query(None, description="Filter stops by transit corridor area"),
+    db: Session = Depends(get_db)
+):
+    """Retrieves designated campus bus stops with geocoordinates and authoritative registration counts."""
+    query = db.query(Stop)
+    if area_id is not None:
+        _validate_area(area_id)
+        query = query.filter(Stop.area_id == area_id)
+    stops = query.order_by(Stop.area_id, Stop.sequence_order).all()
+
+    # Query authoritative student registration volume per stop
+    counts_by_stop = dict(
+        db.query(Registration.stop_id, func.count(Registration.reg_id))
+        .group_by(Registration.stop_id)
+        .all()
+    )
+    result = []
+    for s in stops:
+        d = s.to_dict()
+        d["student_count"] = counts_by_stop.get(s.stop_id, 0)
+        result.append(d)
+    return result
 
 @router.post("/stops", response_model=StopSchema, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 def add_stop(payload: StopCreateRequest, db: Session = Depends(get_db)):
