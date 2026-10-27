@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import LeafletMap from '../components/LeafletMap';
 import StatusBadge from '../components/StatusBadge';
-import { Bus, MapPin, Clock, Calendar, Check, ShieldCheck, User, Phone, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Bus, MapPin, Clock, Check, ShieldCheck, Phone, RefreshCw } from 'lucide-react';
 import api from '../services/api';
 import { describeError } from '../services/auth';
+import usePageTitle from '../hooks/usePageTitle';
 
 const SAMPLE_STUDENTS_FALLBACK = [
   { roll_no: '21CS104', name: 'K. Vignesh', department: 'CSE - Final Year' },
 ];
 
 export default function StudentView({ selectedDate, activeInstitution, onSelectInstitution, institutionsList }) {
+  usePageTitle('Student Commuter');
   const [studentRoll, setStudentRoll] = useState('21CS104');
   const [studentProfile, setStudentProfile] = useState(null);
   // Roster comes from the API; the backend is the source of truth for which
@@ -93,9 +95,10 @@ export default function StudentView({ selectedDate, activeInstitution, onSelectI
   };
 
   const assignedStop = studentProfile?.assigned_stop;
+  const [activeStudentTab, setActiveStudentTab] = useState('ALL');
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Editorial Hero Section */}
       <section className="hero">
         <div>
@@ -117,32 +120,67 @@ export default function StudentView({ selectedDate, activeInstitution, onSelectI
         </div>
       </section>
 
-      {/* Operational Step 1: Student Roll Number Lookup */}
-      <div className="card space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#edf1ed] pb-3">
-          <div>
-            <p className="kicker" style={{ margin: 0 }}>WORKFLOW STEP 1: VERIFIED COMMUTER LOOKUP</p>
-            <h3 className="card-title text-base font-bold">Select or Enter Student Roll Number</h3>
-          </div>
-          <span className="text-xs text-[#69716d]">SHA-256 Salted Anonymized Transit Profile</span>
+      {/* Persistent Student Commuter Sub-Navigation Bar */}
+      <nav
+        aria-label="Student Commuter Sections"
+        className="border-b border-[#dfe5df] bg-white rounded-[10px] p-1.5 shadow-xs overflow-x-auto min-w-0"
+      >
+        <div className="flex items-center gap-1 min-w-max sm:min-w-0">
+          {[
+            { id: 'ALL', label: 'All Sections', icon: Bus },
+            { id: 'PASS', label: 'My Bus Pass', icon: ShieldCheck },
+            { id: 'ROUTE', label: 'My Route', icon: MapPin },
+            { id: 'STATUS', label: 'Travel Status', icon: Clock },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeStudentTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveStudentTab(tab.id)}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[7px] text-xs font-semibold transition-all whitespace-nowrap ${
+                  isActive
+                    ? 'bg-[#18201d] text-white shadow-xs'
+                    : 'text-[#69716d] hover:text-[#18201d] hover:bg-[#f7f8f5]'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
+      </nav>
 
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          {sampleStudents.map(s => (
-            <button
-              key={s.roll_no}
-              onClick={() => setStudentRoll(s.roll_no)}
-              className={`px-3 py-1.5 rounded-[7px] text-xs font-semibold border transition-all ${
-                studentRoll === s.roll_no
-                  ? 'bg-[#18201d] text-white border-[#18201d]'
-                  : 'bg-[#f7f8f5] text-[#18201d] border-[#dfe5df] hover:border-[#18201d]'
-              }`}
-            >
-              <span className="font-mono">{s.roll_no}</span> &bull; <span>{s.name} ({s.department})</span>
-            </button>
-          ))}
+      {/* Operational Step 1: Student Roll Number Lookup (visible in ALL or STATUS) */}
+      {(activeStudentTab === 'ALL' || activeStudentTab === 'STATUS') && (
+        <div className="card space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#edf1ed] pb-3">
+            <div>
+              <p className="kicker" style={{ margin: 0 }}>WORKFLOW STEP 1: VERIFIED COMMUTER LOOKUP</p>
+              <h3 className="card-title text-base font-bold">Select or Enter Student Roll Number</h3>
+            </div>
+            <span className="text-xs text-[#69716d]">SHA-256 Salted Anonymized Transit Profile</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {sampleStudents.map(s => (
+              <button
+                key={s.roll_no}
+                onClick={() => setStudentRoll(s.roll_no)}
+                className={`px-3 py-1.5 rounded-[7px] text-xs font-semibold border transition-all ${
+                  studentRoll === s.roll_no
+                    ? 'bg-[#18201d] text-white border-[#18201d]'
+                    : 'bg-[#f7f8f5] text-[#18201d] border-[#dfe5df] hover:border-[#18201d]'
+                }`}
+              >
+                <span className="font-mono">{s.roll_no}</span> &bull; <span>{s.name} ({s.department})</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Notification Banner when seat is released or confirmed */}
       {optOutMessage && (
@@ -158,7 +196,7 @@ export default function StudentView({ selectedDate, activeInstitution, onSelectI
         </div>
       )}
 
-      {/* Opt-out failure — was console-only, so a rejected toggle looked like success */}
+      {/* Opt-out failure */}
       {optOutError && (
         <div
           role="alert"
@@ -170,9 +208,10 @@ export default function StudentView({ selectedDate, activeInstitution, onSelectI
 
       {/* Main Student Console Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Digital Boarding Pass Ticket */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="card space-y-5 border-[#dfe5df]">
+        {/* Section 1: Digital Boarding Pass Ticket (shown in ALL, PASS, or STATUS) */}
+        {(activeStudentTab === 'ALL' || activeStudentTab === 'PASS' || activeStudentTab === 'STATUS') && (
+          <div className={`${activeStudentTab === 'ALL' ? 'lg:col-span-5' : activeStudentTab === 'PASS' ? 'lg:col-span-8 lg:col-start-3' : 'lg:col-span-6'} space-y-6`}>
+            <div className="card space-y-5 border-[#dfe5df]">
             {/* Error banner — an empty pass must never be mistaken for a valid one */}
             {profileError && (
               <div
@@ -325,61 +364,64 @@ export default function StudentView({ selectedDate, activeInstitution, onSelectI
             </div>
           </div>
         </div>
+        )}
 
-        {/* Right Column: Route Map & Live Sequential Itinerary */}
-        <div className="lg:col-span-7 card space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="kicker" style={{ margin: '0 0 4px' }}>GEOSPATIAL ROUTE PATH</p>
-              <h3 className="card-title">Pickup Route to College Campus</h3>
-              <p className="text-xs text-[#69716d]">
-                Scheduled morning path from {assignedStop?.name} to VSB Engineering College Hub.
-              </p>
+        {/* Section 2: Route Map & Live Sequential Itinerary (shown in ALL or ROUTE) */}
+        {(activeStudentTab === 'ALL' || activeStudentTab === 'ROUTE') && (
+          <div className={`${activeStudentTab === 'ALL' ? 'lg:col-span-7' : 'lg:col-span-12'} card space-y-4`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="kicker" style={{ margin: '0 0 4px' }}>GEOSPATIAL ROUTE PATH</p>
+                <h3 className="card-title">Pickup Route to College Campus</h3>
+                <p className="text-xs text-[#69716d]">
+                  Scheduled morning path from {assignedStop?.name} to {activeInstitution?.name || 'VSB Engineering College'} Hub.
+                </p>
+              </div>
+              <span className="badge badge-sage">Arrival 08:30 AM</span>
             </div>
-            <span className="badge badge-sage">Arrival 08:30 AM</span>
-          </div>
 
-          <div className="h-[380px] w-full rounded-[9px] overflow-hidden">
-            <LeafletMap
-              stops={stops.filter(s => s.area_id === assignedStop?.area_id)}
-              activeRoutes={routeInfo?.routes || []}
-              selectedStop={assignedStop}
-              campusCenter={[activeInstitution?.campus_lat || 10.95485, activeInstitution?.campus_lng || 77.95463]}
-              campusName={activeInstitution?.name || 'VSB Engineering College Transit Hub'}
-              activeInstitution={activeInstitution}
-              onSelectInstitution={onSelectInstitution}
-              institutionsList={institutionsList}
-            />
-          </div>
+            <div className="h-[380px] w-full rounded-[9px] overflow-hidden">
+              <LeafletMap
+                stops={stops.filter(s => s.area_id === assignedStop?.area_id)}
+                activeRoutes={routeInfo?.routes || []}
+                selectedStop={assignedStop}
+                campusCenter={[activeInstitution?.campus_lat || 10.95485, activeInstitution?.campus_lng || 77.95463]}
+                campusName={activeInstitution?.name || 'VSB Engineering College Transit Hub'}
+                activeInstitution={activeInstitution}
+                onSelectInstitution={onSelectInstitution}
+                institutionsList={institutionsList}
+              />
+            </div>
 
-          {/* Sequential Itinerary Stops */}
-          <div className="space-y-2 pt-2">
-            <p className="kicker" style={{ margin: '0 0 4px' }}>SCHEDULED ROUTE STOPS</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {(routeInfo?.routes?.[0]?.itinerary || []).slice(0, 6).map((step, idx) => {
-                const isSelected = step.stop_id === assignedStop?.stop_id || step.name?.includes(assignedStop?.name);
-                return (
-                  <div
-                    key={idx}
-                    className={`p-2.5 rounded-[7px] border text-xs flex items-center justify-between ${
-                      isSelected
-                        ? 'bg-[#18201d] text-white border-[#18201d]'
-                        : 'bg-[#f7f8f5] text-[#18201d] border-[#dfe5df]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] font-bold ${isSelected ? 'bg-white text-[#18201d]' : 'bg-[#dfe5df] text-[#18201d]'}`}>
-                        {idx + 1}
-                      </span>
-                      <span className="font-medium truncate max-w-[140px]">{step.name}</span>
+            {/* Sequential Itinerary Stops */}
+            <div className="space-y-2 pt-2">
+              <p className="kicker" style={{ margin: '0 0 4px' }}>SCHEDULED ROUTE STOPS</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {(routeInfo?.routes?.[0]?.itinerary || []).slice(0, 6).map((step, idx) => {
+                  const isSelected = step.stop_id === assignedStop?.stop_id || step.name?.includes(assignedStop?.name);
+                  return (
+                    <div
+                      key={idx}
+                      className={`p-2.5 rounded-[7px] border text-xs flex items-center justify-between ${
+                        isSelected
+                          ? 'bg-[#18201d] text-white border-[#18201d]'
+                          : 'bg-[#f7f8f5] text-[#18201d] border-[#dfe5df]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] font-bold ${isSelected ? 'bg-white text-[#18201d]' : 'bg-[#dfe5df] text-[#18201d]'}`}>
+                          {idx + 1}
+                        </span>
+                        <span className="font-medium truncate max-w-[140px]">{step.name}</span>
+                      </div>
+                      <span className="font-mono text-[11px] font-bold">{step.time}</span>
                     </div>
-                    <span className="font-mono text-[11px] font-bold">{step.time}</span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

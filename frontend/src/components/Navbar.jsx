@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, UserCheck, Calendar, Building2, ChevronDown, Plus, X, MapPin, Bus } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, UserCheck, Calendar, Building2, ChevronDown, Plus, X, MapPin } from 'lucide-react';
 import { statusColor, statusLabel } from '../constants/status';
 
 export default function Navbar({
-  activeRole,
+  activeRole: _activeRole,
   setActiveRole,
   selectedDate,
   setSelectedDate,
@@ -16,6 +17,11 @@ export default function Navbar({
   onRequestSignIn,
   onLogout
 }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isStudent = location.pathname.startsWith('/student');
+  const isOffice = !isStudent;
+
   const [showCampusMenu, setShowCampusMenu] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
 
@@ -101,13 +107,13 @@ export default function Navbar({
       <header className="topbar">
         {/* Brand & Identity (Editorial) */}
         <div className="flex items-center gap-3">
-          <a className="brand" href="/" aria-label="BUSify Home">
+          <Link className="brand" to="/office/overview" aria-label="BUSify Home">
             <span className="brand-mark">B</span>
             <div className="brand-title">
               <span className="brand-name">BUSIFY</span>
               <span className="brand-sub">Transit Intelligence</span>
             </div>
-          </a>
+          </Link>
 
           {/* Scalable Multi-College Switcher Dropdown */}
           <div className="relative">
@@ -190,16 +196,22 @@ export default function Navbar({
         <div className="role-tabs">
           <button
             type="button"
-            onClick={() => setActiveRole('office')}
-            className={`role-tab ${activeRole === 'office' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveRole?.('office');
+              navigate('/office/overview');
+            }}
+            className={`role-tab ${isOffice ? 'active' : ''}`}
           >
             <LayoutDashboard className="h-3.5 w-3.5" />
             <span>Transport Office</span>
           </button>
           <button
             type="button"
-            onClick={() => setActiveRole('student')}
-            className={`role-tab ${activeRole === 'student' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveRole?.('student');
+              navigate('/student');
+            }}
+            className={`role-tab ${isStudent ? 'active' : ''}`}
           >
             <UserCheck className="h-3.5 w-3.5" />
             <span>Student Commuter</span>

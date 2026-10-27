@@ -172,6 +172,22 @@ a {
 .pulse {
   margin-right: 7px;
   box-shadow: 0 0 0 4px #dff0df;
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(72, 161, 91, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(72, 161, 91, 0.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    animation: none;
+  }
 }
 
 /* ==============================================================================
