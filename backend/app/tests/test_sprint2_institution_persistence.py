@@ -1,3 +1,6 @@
+import sys
+import json
+import subprocess
 import pytest
 from fastapi.testclient import TestClient
 from backend.app.main import app
@@ -156,3 +159,64 @@ def test_list_districts_and_filtering():
     assert res_filt.status_code == 200
     insts = res_filt.json()["institutions"]
     assert any(i["id"] == "VSB_KARUR" for i in insts)
+
+def test_seed_preserves_active_when_other_institution_exists():
+    """Verify seeding default VSB does not hijack active state if another campus is active."""
+    with SessionLocal() as db:
+        # Create an alternative active institution
+        alt_inst = Institution(
+            id="INST_OTHER_ACTIVE",
+            name="Other Active University",
+            campus_code="OAU",
+            city="Coimbatore",
+            district="Coimbatore",
+            state="Tamil Nadu",
+            campus_lat=11.0168,
+            campus_lng=76.9558,
+            total_fleet_size=30,
+            default_capacity=55,
+            is_active=True,
+        )
+        # Deactivate existing
+        db.query(Institution).update({Institution.is_active: False})
+        db.add(alt_inst)
+
+        # Temporarily remove VSB
+        vsb = db.query(Institution).filter(Institution.id == "VSB_KARUR").first()
+        if vsb:
+            db.delete(vsb)
+        db.commit()
+
+        # Seed when table contains other institutions and an active campus
+        seeded_vsb = seed_default_institutions(db)
+        assert seeded_vsb is not None
+        assert seeded_vsb.id == "VSB_KARUR"
+        # Must NOT be active because INST_OTHER_ACTIVE was active
+        assert seeded_vsb.is_active is False
+
+        active_inst = db.query(Institution).filter(Institution.is_active == True).first()
+        assert active_inst.id == "INST_OTHER_ACTIVE"
+
+        # Restore: activate VSB, remove alt_inst
+        seeded_vsb.is_active = True
+        db.delete(alt_inst)
+        db.commit()
+
+def test_cross_process_persistence():
+    """Verify that records committed to the database persist across separate OS processes."""
+    code = (
+        "import json; "
+        "from backend.app.database import SessionLocal; "
+        "from backend.app.models.institution import Institution; "
+        "db = SessionLocal(); "
+        "inst = db.query(Institution).filter(Institution.id == 'VSB_KARUR').first(); "
+        "out = {'id': inst.id, 'name': inst.name, 'campus_lat': inst.campus_lat, 'campus_lng': inst.campus_lng} if inst else {}; "
+        "print(json.dumps(out)); "
+        "db.close()"
+    )
+    result = subprocess.check_output([sys.executable, "-c", code], text=True)
+    data = json.loads(result.strip())
+    assert data.get("id") == "VSB_KARUR"
+    assert data.get("name") == "VSB Engineering College"
+    assert data.get("campus_lat") == 10.95488
+    assert data.get("campus_lng") == 77.95462

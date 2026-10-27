@@ -63,6 +63,7 @@ def seed_default_institutions(db: Session) -> Optional[Institution]:
     Idempotently seeds the default VSB Engineering College institution record.
     Uses canonical campus coordinates from settings.
     """
+    has_active = db.query(Institution).filter(Institution.is_active == True).first()
     vsb = db.query(Institution).filter(Institution.id == "VSB_KARUR").first()
     if vsb is None:
         vsb = Institution(
@@ -77,7 +78,7 @@ def seed_default_institutions(db: Session) -> Optional[Institution]:
             depot_address="NH-67 Covai Road, Karudayampalayam, Karur 639111",
             total_fleet_size=45,
             default_capacity=55,
-            is_active=True,
+            is_active=not bool(has_active),
             corridors=DEFAULT_VSB_CORRIDORS,
         )
         db.add(vsb)
@@ -85,7 +86,6 @@ def seed_default_institutions(db: Session) -> Optional[Institution]:
         db.refresh(vsb)
     else:
         # Ensure at least one institution is marked active if none is
-        has_active = db.query(Institution).filter(Institution.is_active == True).first()
         if not has_active:
             vsb.is_active = True
             db.commit()
