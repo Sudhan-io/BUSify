@@ -597,7 +597,11 @@ def parse_and_benchmark_csv(
     manual_buses_count = len(manual_groups)
     manual_total_km = round(manual_total_km, 1)
     
-    # 2. BUSify Optimized Route Calculation (guarantees zero standing, resolves ALLOC-004)
+    # 2. BUSify Rapid Benchmark Route Calculation (Resolves M-03 & ALLOC-004)
+    # NOTE (M-03): This route generator uses an angular polar-sweep clustering heuristic
+    # with a 1.28x road winding factor. It provides immediate (<100ms) synchronous client feedback
+    # during CSV uploads to benchmark potential vehicle savings, unlike the comprehensive
+    # OR-Tools CVRP solver used in the full daily manifest pipeline.
     opt_bus_capacity = standard_bus_capacity
     
     def stop_angle(s):

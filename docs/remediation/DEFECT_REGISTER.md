@@ -64,7 +64,6 @@
 | ID | Title | Confidence | Affected files | Sprint |
 |:---|:---|:---|:---|:---|
 | **M-01** | Zone metadata contradicts itself in `LeafletMap.jsx:69-105` vs `:946-958` | Confirmed | `LeafletMap.jsx` | Sprint-6 |
-| **M-03** | "Optimized" CSV benchmark is a greedy sort with assumed detour factors, not CVRP | Confirmed | `routes_workflow.py:489-531` | Sprint-3 |
 | **M-05** | `backend/Dockerfile` DB path mismatch | Confirmed | `backend/Dockerfile` | Sprint-8 |
 | **M-06** | `frontend/Dockerfile` build arg `VITE_API_BASE_URL` never reaches client | Confirmed | `frontend/Dockerfile`, `services/api.js:3` | Sprint-8 |
 | **M-07** | Two divergent `requirements.txt` files | Confirmed | root + `backend/` | Sprint-0 |
@@ -128,3 +127,4 @@ Verified items with recorded regression test evidence:
 | ALLOC-004 | Replaced hardcoded `55` and `opt_bus_capacity = 52` with `settings.DEFAULT_BUS_CAPACITY` across CSV benchmark calculation | Verified: `test_sprint3_api.py` and regression suite pass |
 | DATA-005 (H-12) | Corrected simulator trips denominator to use actual baseline allocation and dynamic allocation sums instead of static fleet size | Verified: `test_sprint2_algorithms.py`, `test_sprint3_api.py`, regression suite pass |
 | M-04 | Documented diesel consumption (3.8 km/L), operational days (220/yr), diesel price (₹94.5/L), and carbon intensity (2.68 kg CO2/L) in benchmark savings | Verified: code comments and formulas aligned in `routes_workflow.py` |
+| M-03 | Clarified CSV benchmark route computation as an angular polar-sweep clustering heuristic for fast upload feedback vs. full CVRP MIP | Verified in Sprint-3: documented in `routes_workflow.py:600-605`, tests passing |

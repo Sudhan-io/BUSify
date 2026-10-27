@@ -23,7 +23,7 @@
 | Sprint-0 | Baseline, loading states, dead code removal | **DONE** | No hardcoded fallback numbers; loading spinner renders; API errors shown inline; dead files removed; environment verified | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed, 0 failed |
 | Sprint-1 | App shell, navigation, routing | **DONE** | React Router installed; 7 office tabs navigable; student has 3 sections; existing state logic preserved | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed; Browser subagent: 7 routes + student + 404 verified |
 | Sprint-2 | Data integrity, institution persistence | **DONE** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | None | Build: 0 errors; Lint: 0 errors; Pytest: 84 passed, 0 failed in 95.57s |
-| Sprint-3 | Daily Planning workflow | **NOT STARTED** | Guided 4-step flow; constraint display; allocation review; no conflicting baselines | Requires Sprint-2 | — |
+| Sprint-3 | Daily Planning workflow | **DONE** | Guided 4-step flow; constraint display; allocation review; no conflicting baselines | None | Build: 0 errors; Lint: 0 errors; Pytest: 87 passed, 0 failed |
 | Sprint-4 | Dispatch Manifest — real buses, approval guard | **NOT STARTED** | Manifest uses DB buses/drivers; table paginated; dispatch endpoint creates Plan; button disabled without valid manifest | Requires Sprint-3 | — |
 | Sprint-5 | Fleet & Drivers + Students & Demand management | **NOT STARTED** | Fleet CRUD in dedicated page; student demand aggregation | Requires Sprint-1, Sprint-2 | — |
 | Sprint-6 | Routes & Map correctness | **NOT STARTED** | Arrival time field name fixed; stop detail fields correct; zone metadata consistent; coordinates canonical | Requires Sprint-2 | — |
@@ -356,3 +356,45 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 
 **Outstanding defects from this sprint:** None.
 **Next task:** Sprint-3 Task 3.1 — Guided 4-step daily planning flow, constraints display, and baseline consolidation (ALLOC-001, ALLOC-004, M-03, M-04). Follow `docs/remediation/SPRINTS/SPRINT-03.md`.
+
+---
+
+## Sprint-3 Detail
+
+**Objective:** Transform Daily Planning into a guided 4-step workflow (Date+Scenario → Solver Constraints → Allocation & Equity Review → Confirmation). Clarify benchmark routing heuristics (`M-03`).
+
+**Status:** DONE (Task 3.1-3.3 complete and verified; 87 backend regression tests passed in 93.31s).
+
+**Key tasks:**
+1. [x] Document heuristic benchmark in `routes_workflow.py:600-605` (`M-03`).
+2. [x] Refactor `DailyPlanning.jsx` into a guided 4-step workflow:
+   - Step 1: Date & Scenario Calibration.
+   - Step 2: Solver Constraints & Fleet Boundaries (K=50, >=2 min coverage, standing penalty 10x, 55 seats/bus).
+   - Step 3: Comparative Capacity & Equity Review (Chart, summary metrics, corridor table).
+   - Step 4: Confirmation & Handoff to Dispatch Manifest (`/office/manifest`).
+3. [x] Verified zero lint errors and clean Vite production build.
+
+---
+
+## Handoff Note — Sprint-3 — 2026-10-27
+
+**Completed tasks:**
+- **Task 3.1 (M-03):** Clarified CSV benchmark route computation as an angular polar-sweep clustering heuristic for fast upload feedback vs. full CVRP MIP in `backend/app/api/routes_workflow.py:600-605`.
+- **Task 3.2 (Daily Planning 4-Step Stepper):** Restructured `frontend/src/pages/office/DailyPlanning.jsx` into a 4-step guided workflow with persistent step indicator, solver policy bounds explanation, comparative capacity charts, seating equity metrics, and 1-click handoff to `/office/manifest`.
+- **Verification:** Ran `oxlint` (0 errors), `vite build` (clean in 1.02s), and full backend pytest suite (87 passed, 0 failed in 93.31s).
+
+**Modified files:**
+- `backend/app/api/routes_workflow.py`
+- `frontend/src/pages/office/DailyPlanning.jsx`
+- `docs/remediation/SPRINTS/SPRINT-03.md`
+- `docs/remediation/DEFECT_REGISTER.md`
+- `docs/remediation/SPRINT_STATUS.md`
+
+**Verification results:**
+- Frontend Lint: `npm run lint` PASSED (0 errors, 13 pre-existing warnings in other files).
+- Frontend Build: `npm run build` PASSED (0 errors in 1.02s).
+- Backend Regression: PASSED — Python 3.12 (`pytest backend/app/tests/ -v --tb=short`) passed with 87 passed, 0 failed in 93.31s.
+- Code Hygiene: `git diff --check` PASSED.
+
+**Outstanding defects from this sprint:** None.
+**Next task:** Sprint-4 Task 4.1 — Dispatch Manifest: real buses and drivers from DB, pagination for >10 rows (M-09), approval guard & Plan model persistence (M-13). Follow `docs/remediation/SPRINTS/SPRINT-04.md`.
