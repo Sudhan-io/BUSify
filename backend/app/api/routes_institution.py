@@ -128,11 +128,11 @@ def create_institution(payload: InstitutionCreateRequest, db: Session = Depends(
         suffix += 1
 
     corridors = [
-        {"id": "AREA_A", "name": f"{payload.city} North Corridor", "bearing_deg": 25.0},
-        {"id": "AREA_B", "name": f"{payload.city} East Arterial", "bearing_deg": 95.0},
-        {"id": "AREA_C", "name": f"{payload.city} South Highway", "bearing_deg": 180.0},
-        {"id": "AREA_D", "name": f"{payload.city} West Express", "bearing_deg": 270.0},
-        {"id": "AREA_E", "name": f"{payload.city} Central Urban Hub", "bearing_deg": 320.0},
+        {"id": "AREA_A", "name": f"{payload.city} West Corridor", "bearing_deg": 270.0},
+        {"id": "AREA_B", "name": f"{payload.city} South Hub", "bearing_deg": 180.0},
+        {"id": "AREA_C", "name": f"{payload.city} South-East", "bearing_deg": 135.0},
+        {"id": "AREA_D", "name": f"{payload.city} North Corridor", "bearing_deg": 0.0},
+        {"id": "AREA_E", "name": f"{payload.city} North-West", "bearing_deg": 315.0},
     ]
 
     try:

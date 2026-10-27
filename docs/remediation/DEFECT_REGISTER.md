@@ -48,8 +48,6 @@
 | ID | Title | Confidence | Affected files | User impact | Fix | Sprint |
 |:---|:---|:---|:---|:---|:---|:---|
 | **NAV-003** | Student roll-number selector exposed before authentication — enumerable | Confirmed | `StudentView.jsx:120-145` | Any visitor sees all registered commuter names and rolls | Replace selector with direct lookup after student auth | Sprint-7 |
-| **MAP-001** | `step.arrival_time` field does not exist — solver emits `time` key; 3 UI branches always show `--:--` | Confirmed | `LeafletMap.jsx:358,719,912` | Route arrival times always blank on map and trip sheet | Use `step.time` not `step.arrival_time` | Sprint-6 |
-| **MAP-002** | `registered_count`, `p90_riders`, `cumulative_passengers` fields never returned by backend; dead UI branches | Confirmed | `LeafletMap.jsx:726,729,916` | Stop detail panel shows blank fields | Remove dead branches or add fields to solver output | Sprint-6 |
 | **ALLOC-002** | `bus_code` in manifest is sequential `BUS-{n}`, not drawn from `buses` table — wrong bus when allocator assigns ≠10 per area | Confirmed | `routes_workflow.py:93,144` | Driver sheet references non-existent bus IDs | Map manifest rows to actual registered buses | Sprint-4 |
 | **ALLOC-003** | Driver roster rotates `(bus_idx-1) % 10` — same driver can appear on two routes | Confirmed | `routes_workflow.py:92` | Two trip sheets show same driver name | Assign from registered driver list without repeats; flag if insufficient drivers | Sprint-4 |
 | **DATA-006** | `H-10`: `get_student_profile` runs `db.query(Stop).all()` on every request | Confirmed | `routes_workflow.py:157` | N+1 DB fetch, no caching | Cache stops or use a smarter query | Sprint-7 |
@@ -63,7 +61,6 @@
 
 | ID | Title | Confidence | Affected files | Sprint |
 |:---|:---|:---|:---|:---|
-| **M-01** | Zone metadata contradicts itself in `LeafletMap.jsx:69-105` vs `:946-958` | Confirmed | `LeafletMap.jsx` | Sprint-6 |
 | **M-05** | `backend/Dockerfile` DB path mismatch | Confirmed | `backend/Dockerfile` | Sprint-8 |
 | **M-06** | `frontend/Dockerfile` build arg `VITE_API_BASE_URL` never reaches client | Confirmed | `frontend/Dockerfile`, `services/api.js:3` | Sprint-8 |
 | **M-07** | Two divergent `requirements.txt` files | Confirmed | root + `backend/` | Sprint-0 |
@@ -128,3 +125,6 @@ Verified items with recorded regression test evidence:
 | M-10 | Corrected false advertisement of `.xlsx` in upload modal; clarified UI to `.CSV, .TXT`; rejected binary workbook uploads with descriptive HTTP 400 | Verified in Sprint-5: `test_upload_csv_rejects_binary_xlsx` passing + frontend build |
 | M-11 | Moved `Base.metadata.create_all()` and `seed_default_institutions()` into FastAPI `@asynccontextmanager` `lifespan` handler | Verified in Sprint-5: clean app lifespan startup, 0 import side-effects |
 | M-12 | Moved raw import-time `ALTER TABLE` migrations for `buses` and `plans` into clean lifespan startup functions (`ensure_bus_columns()`, `ensure_plan_columns()`) | Verified in Sprint-5: lifespan startup verified across 103 backend regression tests |
+| MAP-001 | VRP solver emits `arrival_time` alongside `time`; map sequence and turn-by-turn drawer consume `arrival_time || time` without `--:--` fallback | Verified in Sprint-6: `test_sprint6_map_and_routes.py` (4 passed), full suite 107 passed |
+| MAP-002 | Solver computes rolling `cumulative_passengers` for morning & evening trips and attaches `registered_count` and `p90_riders`; map stop popups display live counts | Verified in Sprint-6: monotonic counter verified, stop details active |
+| M-01 | Zone metadata synchronized across `LeafletMap.jsx`, legend overlay, institution defaults, and corridor configurations | Verified in Sprint-6: cardinal directions (West, South, South-East, North, North-West) verified |

@@ -207,6 +207,7 @@ class CapacitatedVRPSolver:
                         "node_type": "depot_arrival",
                         "name": settings.COLLEGE_NAME,
                         "time": time_str,
+                        "arrival_time": time_str,
                         "lat": depot_coords[0],
                         "lon": depot_coords[1],
                         "boarded": 0,
@@ -220,15 +221,19 @@ class CapacitatedVRPSolver:
                         "stop_id": stop_obj["stop_id"],
                         "name": stop_obj["name"],
                         "time": time_str,
+                        "arrival_time": time_str,
                         "lat": stop_obj["lat"],
                         "lon": stop_obj["lon"],
                         "boarded": boarded,
+                        "registered_count": stop_obj.get("registered_count"),
+                        "p90_riders": stop_obj.get("p90_riders", boarded),
                     })
                 elif curr_node == 0 and i == 0:
                     scheduled_steps.append({
                         "node_type": "depot_departure",
                         "name": f"{settings.COLLEGE_NAME} (Depot Out)",
                         "time": time_str,
+                        "arrival_time": time_str,
                         "lat": depot_coords[0],
                         "lon": depot_coords[1],
                         "boarded": 0,
@@ -237,6 +242,12 @@ class CapacitatedVRPSolver:
                 current_time -= timedelta(seconds=segment_duration)
 
             scheduled_steps.reverse()
+
+            # Compute rolling cumulative passengers onboard for morning pickup
+            rolling_pax = 0
+            for step in scheduled_steps:
+                rolling_pax += step.get("boarded", 0)
+                step["cumulative_passengers"] = rolling_pax
 
             if direction == "EVENING_DROP":
                 # For evening drop: departs campus hub at 16:30 and drops outward
@@ -248,10 +259,12 @@ class CapacitatedVRPSolver:
                     "node_type": "depot_departure",
                     "name": f"{settings.COLLEGE_NAME} (Campus Dismissal)",
                     "time": cur_dt.strftime("%H:%M"),
+                    "arrival_time": cur_dt.strftime("%H:%M"),
                     "lat": depot_coords[0],
                     "lon": depot_coords[1],
                     "boarded": 0,
-                    "disembarked": 0
+                    "disembarked": 0,
+                    "cumulative_passengers": route_load,
                 })
                 # Reverse stops order so inner stops are reached first
                 pickup_nodes = [s for s in scheduled_steps if s.get("node_type") == "pickup_stop"]
@@ -260,6 +273,7 @@ class CapacitatedVRPSolver:
                 speed_mps = (settings.AVERAGE_BUS_SPEED_KMH * 1000.0) / 3600.0
                 dwell_sec = 60  # 1 min dropoff dwell
 
+                running_pax = route_load
                 for p_node in pickup_nodes:
                     curr_coord = (p_node["lat"], p_node["lon"])
                     import math
@@ -273,15 +287,22 @@ class CapacitatedVRPSolver:
                     cur_dt += timedelta(seconds=seg_seconds + dwell_sec)
                     prev_coord = curr_coord
 
+                    drop_count = p_node.get("boarded", 5)
+                    running_pax = max(0, running_pax - drop_count)
+
                     evening_steps.append({
                         "node_type": "dropoff_stop",
                         "stop_id": p_node.get("stop_id"),
                         "name": p_node.get("name"),
                         "time": cur_dt.strftime("%H:%M"),
+                        "arrival_time": cur_dt.strftime("%H:%M"),
                         "lat": p_node.get("lat"),
                         "lon": p_node.get("lon"),
                         "boarded": 0,
-                        "disembarked": p_node.get("boarded", 5)
+                        "disembarked": drop_count,
+                        "cumulative_passengers": running_pax,
+                        "registered_count": p_node.get("registered_count"),
+                        "p90_riders": p_node.get("p90_riders"),
                     })
                 # Final terminal
                 cur_dt += timedelta(minutes=5)
@@ -289,10 +310,12 @@ class CapacitatedVRPSolver:
                     "node_type": "depot_arrival",
                     "name": "Corridor Outer Terminal Depot",
                     "time": cur_dt.strftime("%H:%M"),
+                    "arrival_time": cur_dt.strftime("%H:%M"),
                     "lat": evening_steps[-1]["lat"] if len(evening_steps) > 1 else depot_coords[0],
                     "lon": evening_steps[-1]["lon"] if len(evening_steps) > 1 else depot_coords[1],
                     "boarded": 0,
-                    "disembarked": 0
+                    "disembarked": 0,
+                    "cumulative_passengers": 0,
                 })
                 scheduled_steps = evening_steps
 
@@ -413,21 +436,48 @@ class CapacitatedVRPSolver:
 
             pickup_steps = []
             for i, s in enumerate(chunk):
+                step_time = times[i + 1].strftime("%H:%M")
                 pickup_steps.append({
                     "node_type": "pickup_stop",
                     "stop_id": s["stop_id"],
                     "name": s["name"],
-                    "time": times[i + 1].strftime("%H:%M"),
+                    "time": step_time,
+                    "arrival_time": step_time,
                     "lat": s["lat"],
                     "lon": s["lon"],
                     "boarded": s["p90_riders"],
+                    "registered_count": s.get("registered_count"),
+                    "p90_riders": s.get("p90_riders"),
                 })
 
+            depot_out_time = times[0].strftime("%H:%M")
             itinerary = [
-                {"node_type": "depot_departure", "name": f"{settings.COLLEGE_NAME} (Depot Out)", "time": times[0].strftime("%H:%M"), "lat": depot_coords[0], "lon": depot_coords[1], "boarded": 0}
+                {
+                    "node_type": "depot_departure",
+                    "name": f"{settings.COLLEGE_NAME} (Depot Out)",
+                    "time": depot_out_time,
+                    "arrival_time": depot_out_time,
+                    "lat": depot_coords[0],
+                    "lon": depot_coords[1],
+                    "boarded": 0,
+                }
             ] + pickup_steps + [
-                {"node_type": "depot_arrival", "name": settings.COLLEGE_NAME, "time": target_arrival_time, "lat": depot_coords[0], "lon": depot_coords[1], "boarded": 0}
+                {
+                    "node_type": "depot_arrival",
+                    "name": settings.COLLEGE_NAME,
+                    "time": target_arrival_time,
+                    "arrival_time": target_arrival_time,
+                    "lat": depot_coords[0],
+                    "lon": depot_coords[1],
+                    "boarded": 0,
+                }
             ]
+
+            # Cumulative passengers
+            rolling_pax = 0
+            for step in itinerary:
+                rolling_pax += step.get("boarded", 0)
+                step["cumulative_passengers"] = rolling_pax
             waypoints = [(step["lat"], step["lon"]) for step in itinerary if "lat" in step and "lon" in step]
             if include_road_geometry:
                 road_coords = road_geometry_service.get_road_geometry(waypoints)

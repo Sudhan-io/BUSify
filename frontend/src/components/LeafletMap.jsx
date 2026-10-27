@@ -11,14 +11,8 @@ import {
   Building2,
   Navigation,
   Layers,
-  Clock,
-  Users,
-  CheckCircle2,
-  ChevronRight,
   Filter,
-  ShieldCheck,
-  MapPin,
-  ArrowRight
+  ShieldCheck
 } from 'lucide-react';
 import L from 'leaflet';
 import { CANONICAL_CAMPUS_COORDINATES } from '../constants/institution';
@@ -70,11 +64,11 @@ const createCustomIcon = (type, color = '#18201d', text = '', isSelected = false
 };
 
 const AREA_COLORS = {
-  AREA_A: '#1f5f84', // Editorial Slate Blue (North Corridor)
-  AREA_B: '#2b6e3b', // Sage Green (East Highway)
-  AREA_C: '#ff6b00', // Terracotta Coral (South Arterial)
-  AREA_D: '#6b46c1', // Royal Violet (West Express)
-  AREA_E: '#b83280', // Berry Rose (Central Urban)
+  AREA_A: '#1f5f84', // Editorial Slate Blue (West Corridor - Kovai Rd)
+  AREA_B: '#2b6e3b', // Sage Green (South Hub - Gandhigramam)
+  AREA_C: '#ff6b00', // Terracotta Coral (South-East Arterial - Thanthonimalai)
+  AREA_D: '#6b46c1', // Royal Violet (North Corridor - Velur)
+  AREA_E: '#b83280', // Berry Rose (North-West Rural - Paramathi)
 };
 
 const ZONE_DESCRIPTIONS = {
@@ -146,6 +140,8 @@ function calculateDistanceKm(lat1, lon1, lat2, lon2) {
 // Map controller for animated pans, fits, corridor focuses, and resets
 function MapController({ campusCenter, selectedStop, stops, autoFitTrigger, resetTrigger, focusedZone, isFullscreen }) {
   const map = useMap();
+  const campusLat = campusCenter?.[0];
+  const campusLng = campusCenter?.[1];
 
   // Invalidate map size when fullscreen toggles
   useEffect(() => {
@@ -157,10 +153,10 @@ function MapController({ campusCenter, selectedStop, stops, autoFitTrigger, rese
 
   // Re-center map when campusCenter changes
   useEffect(() => {
-    if (campusCenter && campusCenter.length === 2 && !isNaN(campusCenter[0]) && !isNaN(campusCenter[1])) {
-      map.flyTo(campusCenter, 12, { duration: 1.0 });
+    if (campusLat !== undefined && campusLng !== undefined && !isNaN(campusLat) && !isNaN(campusLng)) {
+      map.flyTo([campusLat, campusLng], 12, { duration: 1.0 });
     }
-  }, [campusCenter?.[0], campusCenter?.[1], map]);
+  }, [campusLat, campusLng, map]);
 
   // Fly to selected stop smoothly when changed
   useEffect(() => {
@@ -366,9 +362,11 @@ export default function LeafletMap({
       if (step.stop_id) {
         map.set(step.stop_id, {
           seq: idx + 1,
-          time: step.arrival_time,
-          passengers: step.passengers_boarded || step.passengers_dropped || 0,
+          time: step.arrival_time || step.time,
+          passengers: step.passengers_boarded || step.passengers_dropped || step.boarded || step.disembarked || 0,
           totalOnboard: step.cumulative_passengers || 0,
+          registeredCount: step.registered_count,
+          p90Demand: step.p90_riders,
         });
       }
     });
@@ -560,7 +558,7 @@ export default function LeafletMap({
           >
             All Buses ({routePolylines.length})
           </button>
-          {routePolylines.map((r, idx) => {
+          {routePolylines.map((r) => {
             const isActive = activeBusFilter === r.busCode;
             return (
               <button
@@ -734,11 +732,14 @@ export default function LeafletMap({
                     <div className="text-xs text-[#69716d] space-y-0.5">
                       <p>Radial Corridor: <strong className="text-[#18201d]">{zoneInfo.highway}</strong></p>
                       <p>Distance to Hub: <strong className="text-[#18201d]">{distFromCampus} km</strong></p>
-                      {s.registered_count !== undefined && (
-                        <p>Registered Students: <strong className="text-[#18201d]">{s.registered_count}</strong></p>
+                      {(s.student_count !== undefined || s.registered_count !== undefined || seqInfo?.registeredCount !== undefined) && (
+                        <p>Registered Students: <strong className="text-[#18201d]">{s.student_count ?? s.registered_count ?? seqInfo?.registeredCount}</strong></p>
                       )}
-                      {s.p90_riders !== undefined && (
-                        <p>p90 Demand: <strong className="text-[#ff6b00]">{s.p90_riders} riders</strong></p>
+                      {(s.p90_riders !== undefined || seqInfo?.p90Demand !== undefined || (seqInfo && seqInfo.passengers > 0)) && (
+                        <p>Demand / Boarding: <strong className="text-[#ff6b00]">{s.p90_riders ?? seqInfo?.p90Demand ?? `${seqInfo.passengers} riders`}</strong></p>
+                      )}
+                      {seqInfo && seqInfo.totalOnboard !== undefined && seqInfo.totalOnboard > 0 && (
+                        <p>Total Onboard: <strong className="text-[#2b6e3b]">{seqInfo.totalOnboard} riders</strong></p>
                       )}
                     </div>
                     <div className="pt-1 border-t border-[#edf1ed] text-[10px] text-[#69716d] flex items-center justify-between">
@@ -920,7 +921,7 @@ export default function LeafletMap({
                         <div className="truncate">
                           <div className="font-semibold truncate">{step.name || step.stop_id}</div>
                           <div className={`text-[10px] ${isDepot ? 'text-[#dfe5df]' : 'text-[#69716d]'}`}>
-                            {step.arrival_time ? `Arrival: ${step.arrival_time}` : `Stop #${idx + 1}`}
+                            {(step.arrival_time || step.time) ? `Arrival: ${step.arrival_time || step.time}` : `Stop #${idx + 1}`}
                           </div>
                         </div>
                       </div>
@@ -954,19 +955,19 @@ export default function LeafletMap({
           </div>
           <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[10px] text-[#69716d]">
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full" style={{ background: AREA_COLORS.AREA_A }} /> Zone A (North)
+              <span className="h-2 w-2 rounded-full" style={{ background: AREA_COLORS.AREA_A }} /> Zone A (West)
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full" style={{ background: AREA_COLORS.AREA_B }} /> Zone B (East)
+              <span className="h-2 w-2 rounded-full" style={{ background: AREA_COLORS.AREA_B }} /> Zone B (South)
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full" style={{ background: AREA_COLORS.AREA_C }} /> Zone C (South)
+              <span className="h-2 w-2 rounded-full" style={{ background: AREA_COLORS.AREA_C }} /> Zone C (South-East)
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full" style={{ background: AREA_COLORS.AREA_D }} /> Zone D (West)
+              <span className="h-2 w-2 rounded-full" style={{ background: AREA_COLORS.AREA_D }} /> Zone D (North)
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full" style={{ background: AREA_COLORS.AREA_E }} /> Zone E (Central)
+              <span className="h-2 w-2 rounded-full" style={{ background: AREA_COLORS.AREA_E }} /> Zone E (North-West)
             </span>
           </div>
         </div>

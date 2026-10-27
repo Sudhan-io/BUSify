@@ -26,7 +26,7 @@
 | Sprint-3 | Daily Planning workflow | **DONE** | Guided 4-step flow; constraint display; allocation review; no conflicting baselines | None | Build: 0 errors; Lint: 0 errors; Pytest: 87 passed, 0 failed |
 | Sprint-4 | Dispatch Manifest — real buses, approval guard | **DONE** | Manifest uses DB buses/drivers; table paginated; dispatch endpoint creates Plan; button disabled without valid manifest | None | Build: 0 errors; Lint: 0 errors; Pytest: 94 passed, 0 failed |
 | Sprint-5 | Fleet & Drivers + Students & Demand management | **DONE** | Fleet CRUD, driver conflict guard, student demand aggregation, lifespan cleanup | None | Build: 0 errors; Lint: 0 errors; Pytest: 103 passed, 0 failed in 128.72s |
-| Sprint-6 | Routes & Map correctness | **NOT STARTED** | Arrival time field name fixed; stop detail fields correct; zone metadata consistent; coordinates canonical | Requires Sprint-2 | — |
+| Sprint-6 | Routes & Map correctness | **DONE** | Arrival time field name fixed; stop detail fields correct; zone metadata consistent; coordinates canonical | None | Build: 0 errors; Lint: 0 errors; Pytest: 107 passed, 0 failed in 134.05s |
 | Sprint-7 | Student Commuter experience | **NOT STARTED** | Pass shows correct occupancy; route sections clear; no pre-auth roll selector exposure | Requires Sprint-5, Sprint-2 | — |
 | Sprint-8 | Security, accessibility, deployment | **NOT STARTED** | All forms keyboard-accessible; all modals have focus trap; Docker paths fixed; requirements consolidated; regression suite passes | Requires all prior | — |
 
@@ -484,4 +484,49 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 - `docs/remediation/SPRINT_STATUS.md`
 
 **Outstanding defects from this sprint:** None.
-**Next task:** Sprint-6 — Routes & Map correctness: arrival time field name fix (`MAP-001`), stop detail fields (`MAP-002`), zone metadata consistency (`M-01`), and canonical coordinates.
+
+---
+
+## Sprint-6 Detail
+
+**Objective:** Deliver accurate route arrival times (`MAP-001`), stop detail metrics and rolling passenger onboard loads (`MAP-002`), and eliminate zone metadata cardinal contradictions (`M-01`).
+
+**Acceptance criteria:**
+- [x] `arrival_time` field emitted on all itinerary steps alongside `time` across both OR-Tools MIP solver and heuristic fallback routes (`MAP-001`).
+- [x] `cumulative_passengers` rolling counter computed monotonically on morning pickup and decrementing on evening drop (`MAP-002`).
+- [x] `registered_count` and `p90_riders` preserved from stop entities into itinerary steps (`MAP-002`).
+- [x] Interactive map stop popups display registered student counts, p90 demand, and cumulative load (`MAP-002`).
+- [x] Turn-by-turn drawer displays sequential stop arrival times and passenger load (`MAP-001`).
+- [x] Map legend and comments aligned with `ZONE_DESCRIPTIONS` cardinal directions (Zone A West, Zone B South, Zone C South-East, Zone D North, Zone E North-West) (`M-01`).
+- [x] Institution model corridors and seeder synced with canonical cardinal directions (`M-01`).
+- [x] Frontend lint zero errors/warnings, production build clean in 1.07s.
+- [x] Dedicated test suite in `backend/app/tests/test_sprint6_map_and_routes.py` (4 passed) and full backend regression suite (107 passed, 0 failed in 134.05s).
+
+---
+
+## Handoff Note — Sprint-6 — 2026-10-27
+
+**Completed tasks:**
+- **MAP-001:** Standardized itinerary step arrival times (`time` + `arrival_time`) across solver and map drawer.
+- **MAP-002:** Added rolling passenger load (`cumulative_passengers`) and stop demand details (`registered_count`, `p90_riders`).
+- **M-01:** Synchronized corridor metadata and cardinal directions across `LeafletMap.jsx`, legend overlay, institution defaults, and database seeders.
+- **Verification:**
+  - Focused Pytest: 4 passed, 0 failed in 9.34s (`test_sprint6_map_and_routes.py`).
+  - Full Regression Suite: 107 passed, 0 failed in 134.05s.
+  - Frontend Lint: 0 warnings, 0 errors.
+  - Frontend Build: Clean production bundle in 1.07s.
+  - Code Hygiene: `git diff --check` clean (0 errors).
+
+**Modified files:**
+- `backend/app/api/routes_institution.py`
+- `backend/app/core/routing/vrp_solver.py`
+- `backend/app/models/institution.py`
+- `backend/app/tests/test_sprint6_map_and_routes.py`
+- `frontend/src/components/LeafletMap.jsx`
+- `frontend/src/views/OfficeDashboard.jsx`
+- `docs/remediation/SPRINTS/SPRINT-06.md`
+- `docs/remediation/DEFECT_REGISTER.md`
+- `docs/remediation/SPRINT_STATUS.md`
+
+**Outstanding defects from this sprint:** None.
+**Next task:** Sprint-7 — Student Commuter experience: pass occupancy, clear route sections, student authentication & roll-number privacy (`NAV-003`, `SEC-002`, `DATA-006`, `STUDENT-001`).

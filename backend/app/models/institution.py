@@ -28,11 +28,11 @@ class Institution(Base):
     def to_dict(self) -> Dict[str, Any]:
         """Serializes institution entity conforming to API contract."""
         default_corridors = [
-            {"id": "AREA_A", "name": f"{self.city} North Corridor", "bearing_deg": 25.0},
-            {"id": "AREA_B", "name": f"{self.city} East Arterial", "bearing_deg": 95.0},
-            {"id": "AREA_C", "name": f"{self.city} South Highway", "bearing_deg": 180.0},
-            {"id": "AREA_D", "name": f"{self.city} West Express", "bearing_deg": 270.0},
-            {"id": "AREA_E", "name": f"{self.city} Central Urban Hub", "bearing_deg": 320.0},
+            {"id": "AREA_A", "name": f"{self.city} West Corridor (Kovai Road)", "bearing_deg": 270.0},
+            {"id": "AREA_B", "name": f"{self.city} South Hub (Gandhigramam)", "bearing_deg": 180.0},
+            {"id": "AREA_C", "name": f"{self.city} South-East (Thanthonimalai)", "bearing_deg": 135.0},
+            {"id": "AREA_D", "name": f"{self.city} North Corridor (Velur)", "bearing_deg": 0.0},
+            {"id": "AREA_E", "name": f"{self.city} North-West (Paramathi)", "bearing_deg": 315.0},
         ]
         return {
             "id": self.id,
@@ -51,11 +51,11 @@ class Institution(Base):
         }
 
 DEFAULT_VSB_CORRIDORS = [
-    {"id": "AREA_A", "name": "Zone A: Central & Vengamedu (Kovai Road)", "bearing_deg": 15.0},
-    {"id": "AREA_B", "name": "Zone B: Gandhigramam & South Hub (Thanthonimalai)", "bearing_deg": 95.0},
-    {"id": "AREA_C", "name": "Zone C: Pasupathipalayam & East (Amaravathi)", "bearing_deg": 180.0},
-    {"id": "AREA_D", "name": "Zone D: Sanapiratti & North Radial", "bearing_deg": 270.0},
-    {"id": "AREA_E", "name": "Zone E: Inam Karur & Urban Core", "bearing_deg": 320.0},
+    {"id": "AREA_A", "name": "Zone A: Karudayampalayam & Kovai Road (West)", "bearing_deg": 270.0},
+    {"id": "AREA_B", "name": "Zone B: Gandhigramam & South Hub (South)", "bearing_deg": 180.0},
+    {"id": "AREA_C", "name": "Zone C: Thanthonimalai & South-East", "bearing_deg": 135.0},
+    {"id": "AREA_D", "name": "Zone D: Velur & North Corridor (North)", "bearing_deg": 0.0},
+    {"id": "AREA_E", "name": "Zone E: Paramathi & West Rural (North-West)", "bearing_deg": 315.0},
 ]
 
 def seed_default_institutions(db: Session) -> Optional[Institution]:
@@ -85,6 +85,11 @@ def seed_default_institutions(db: Session) -> Optional[Institution]:
         db.commit()
         db.refresh(vsb)
     else:
+        # Update corridors to canonical if previously set to legacy defaults or empty
+        if not vsb.corridors or any("Central & Vengamedu" in str(c) for c in (vsb.corridors or [])):
+            vsb.corridors = DEFAULT_VSB_CORRIDORS
+            db.commit()
+            db.refresh(vsb)
         # Ensure at least one institution is marked active if none is
         if not has_active:
             vsb.is_active = True
