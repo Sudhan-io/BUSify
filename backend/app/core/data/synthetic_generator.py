@@ -109,7 +109,9 @@ def initialize_database():
     Base.metadata.create_all(bind=engine)
 
 def seed_stops(db):
-    """Inserts all designated transit stops."""
+    """Inserts all designated transit stops if not already present."""
+    if db.query(Stop).count() > 0:
+        return db.query(Stop).all()
     created_stops = []
     for area_id, config in AREAS_CONFIG.items():
         for seq, (stop_id, name, lat, lon, weight) in enumerate(config["stops"], start=1):
@@ -127,7 +129,9 @@ def seed_stops(db):
     return created_stops
 
 def seed_buses(db):
-    """Inserts the 50 bus fleet with baseline area allocations."""
+    """Inserts the 50 bus fleet with baseline area allocations if not already present."""
+    if db.query(Bus).count() > 0:
+        return db.query(Bus).all()
     buses = []
     bus_counter = 1
     for area_id, config in AREAS_CONFIG.items():
@@ -147,7 +151,9 @@ def seed_buses(db):
     return buses
 
 def seed_registrations(db):
-    """Generates 2,200 anonymized student registrations distributed across stops."""
+    """Generates 2,200 anonymized student registrations if not already present."""
+    if db.query(Registration).count() > 0:
+        return db.query(Registration).all()
     registrations = []
     all_stops = []
     stop_weights = []
@@ -182,6 +188,8 @@ def seed_calendar_and_demand(db, days_back=90, days_forward=14):
     Generates academic calendar dates and historical observed ridership
     modeling weekday patterns, exam surges, and random weather/attendance fluctuations.
     """
+    if db.query(Calendar).count() > 0:
+        return db.query(Calendar).count(), db.query(DemandObservation).count()
     today = datetime.now().date()
     start_date = today - timedelta(days=days_back)
     end_date = today + timedelta(days=days_forward)
@@ -286,6 +294,10 @@ def run_synthetic_seed():
         print("Seeding academic calendar and historical demand observations...")
         num_cal, num_dem = seed_calendar_and_demand(db)
         print(f"-> Created {num_cal} calendar days and {num_dem} demand records.")
+
+        from backend.app.models.institution import seed_default_institutions
+        print("Seeding default institutions...")
+        seed_default_institutions(db)
 
         # Ensure seed output directory exists
         os.makedirs("data/seed", exist_ok=True)

@@ -16,7 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application source
 COPY backend/ ./backend/
-COPY busify.db ./data/busify.db
+# Bootstrap database deterministically without tracking binary database files in git
+RUN python -m backend.app.core.data.synthetic_generator
 
 # Expose backend port
 EXPOSE 8000

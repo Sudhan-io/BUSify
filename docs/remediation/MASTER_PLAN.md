@@ -145,4 +145,4 @@ The remediation is complete when:
 | `docs/remediation/SPRINTS/SPRINT-01.md` | Sprint-1 specification |
 | `docs/remediation/SPRINTS/SPRINT-02.md` | Sprint-2 specification |
 | … | (further sprints added as each prior sprint completes) |
-| `docs/OUTSTANDING_ISSUES.md` | Pre-existing bug register (authoritative history) |
+| `docs/remediation/DEFECT_REGISTER.md` | Defect register (authoritative history and tracking) |

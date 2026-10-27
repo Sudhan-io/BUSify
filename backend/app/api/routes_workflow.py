@@ -56,7 +56,7 @@ class OptOutRequest(BaseModel):
 #
 # Binding the endpoints to a known roster closes that hole without inventing a
 # fake auth system. It is NOT a substitute for real student authentication:
-# see `C-01a` / `C-02` in docs/OUTSTANDING_ISSUES.md for what a production
+# see `C-01a` / `C-02` in docs/remediation/DEFECT_REGISTER.md for what a production
 # deployment still needs (per-student credentials, or an opaque session token
 # issued after login).
 DEMO_STUDENT_ROSTER = [

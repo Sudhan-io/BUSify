@@ -12,7 +12,7 @@ Read before starting:
 - `docs/remediation/MASTER_PLAN.md` (sprint sequence)
 - `docs/remediation/ARCHITECTURE_AND_CONTRACTS.md` (file layout)
 - `docs/remediation/SPRINT_EXECUTION_GUIDE.md` (process rules)
-- `docs/OUTSTANDING_ISSUES.md` §1 (environment traps)
+- `docs/remediation/DEFECT_REGISTER.md` (defect inventory)
 
 ---
 

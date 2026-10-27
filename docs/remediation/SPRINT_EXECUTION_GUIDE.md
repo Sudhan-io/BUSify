@@ -16,7 +16,7 @@ Read these files in order. Do not proceed until all four are loaded.
 4. `docs/remediation/SPRINT_STATUS.md` — which sprint is active, what is incomplete, blockers.
 5. `docs/remediation/DECISIONS.md` — architecture decisions already made (avoid relitigating).
 
-Also read `docs/OUTSTANDING_ISSUES.md` §1 (environment traps) before running any command.
+Also read `docs/remediation/DEFECT_REGISTER.md` before running any command.
 
 ---
 

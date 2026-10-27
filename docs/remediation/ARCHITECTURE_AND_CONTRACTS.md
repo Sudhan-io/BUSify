@@ -75,10 +75,10 @@ BUSify/
 │           ├── synthetic_generator.py — AREAS_CONFIG, stop seed data
 │           └── anonymizer.py         — hash_student_id (HMAC-SHA256)
 ├── docs/                          — existing docs (do not delete)
-│   ├── OUTSTANDING_ISSUES.md      — AUTHORITATIVE bug register (read first)
-│   └── remediation/               — this new directory
+│   ├── remediation/               — remediation specs and DEFECT_REGISTER.md
+│   │   └── DEFECT_REGISTER.md     — AUTHORITATIVE defect register
 ├── tests/fixtures/synthetic/      — synthetic test fixtures + generator
-└── busify.db                      — SQLite DB (tracked intentionally — see M-24)
+└── busify.db                      — SQLite DB (local only, seeded via synthetic_generator)
 ```
 
 ---
@@ -182,7 +182,7 @@ Returns all Bus rows via `Bus.to_dict()`. Active/inactive flag exists; manifest 
 
 ## 7. Unknowns (require investigation before implementation)
 
-- Whether the Python environment on the dev machine can run pytest (§1 of OUTSTANDING_ISSUES.md says Python 3.10 globally, target is 3.12, no venv).
+- Python 3.12 verified and available on development machine.
 - Whether OSRM is available at runtime. Tests that call `/routes` or `/operational-manifest` may 500 without it.
 - Whether `alembic` is intended to be used for migrations (it is in requirements but unused — see M-24).
 - Whether the `Plan` model is intended to persist approved manifests (it has no reader or writer — H-21).

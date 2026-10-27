@@ -90,8 +90,9 @@ $$d_a \ge |n_a - n_{\text{baseline}, a}|$$
 
 ### 1. Backend Setup & Run
 ```bash
-# Navigate to project root
-cd d:/PROJECTS/BUSify
+# Clone and navigate to project root
+git clone https://github.com/Sudhan-io/BUSify.git
+cd BUSify
 
 # Install backend dependencies
 python -m pip install -r backend/requirements.txt
@@ -122,7 +123,7 @@ npm run dev
 
 ## Testing & Verification
 
-Run the full automated test suite (27 unit, integration, and stress tests):
+Run the full automated test suite (87 unit, integration, and stress tests):
 ```bash
 # Execute full backend test suite
 python -m pytest backend/app/tests/ -v
@@ -135,20 +136,15 @@ cd frontend && npm run build
 
 ## Technical Documentation Hub
 
-
-All design decisions, schemas, test audits, and incident logs are organized in `docs/`:
+All design decisions, schemas, API specifications, and remediation roadmaps are organized in `docs/`:
 
 | Document | Purpose |
 | :--- | :--- |
-| **[docs/OUTSTANDING_ISSUES.md](file:///d:/PROJECTS/BUSify/docs/OUTSTANDING_ISSUES.md)** | **Work backlog — unresolved defects by severity, environment traps, completed-work log. Start here.** |
 | [docs/ARCHITECTURE.md](file:///d:/PROJECTS/BUSify/docs/ARCHITECTURE.md) | High-level system architecture and mathematical models |
-| [docs/SPRINT_PLAN.md](file:///d:/PROJECTS/BUSify/docs/SPRINT_PLAN.md) | Structured 6-sprint execution roadmap & audit protocols |
-| [docs/AUDIT_REPORT_SPRINT_1_2.md](file:///d:/PROJECTS/BUSify/docs/AUDIT_REPORT_SPRINT_1_2.md) | Sprint 1 & 2 formal audit report |
-| [docs/AUDIT_REPORT_SPRINT_3.md](file:///d:/PROJECTS/BUSify/docs/AUDIT_REPORT_SPRINT_3.md) | Sprint 3 formal audit report |
-| [docs/AUDIT_REPORT_SPRINT_4.md](file:///d:/PROJECTS/BUSify/docs/AUDIT_REPORT_SPRINT_4.md) | Sprint 4 formal audit report |
-| [docs/AUDIT_REPORT_SPRINT_5.md](file:///d:/PROJECTS/BUSify/docs/AUDIT_REPORT_SPRINT_5.md) | Sprint 5 formal audit report |
 | [docs/API_SPECIFICATION.md](file:///d:/PROJECTS/BUSify/docs/API_SPECIFICATION.md) | Full REST endpoint specifications & schemas |
 | [docs/DATA_DICTIONARY.md](file:///d:/PROJECTS/BUSify/docs/DATA_DICTIONARY.md) | Database schemas, column constraints, privacy hashing |
 | [docs/MODULES.md](file:///d:/PROJECTS/BUSify/docs/MODULES.md) | Deep-dive breakdown of all 6 software modules |
-| [docs/FAILURES_AND_IMPROVEMENTS.md](file:///d:/PROJECTS/BUSify/docs/FAILURES_AND_IMPROVEMENTS.md) | Live incident log (`DEV-LOG-001` through `DEV-LOG-010`) |
+| [docs/remediation/MASTER_PLAN.md](file:///d:/PROJECTS/BUSify/docs/remediation/MASTER_PLAN.md) | Multi-sprint remediation plan and architecture contracts |
+| [docs/remediation/SPRINT_STATUS.md](file:///d:/PROJECTS/BUSify/docs/remediation/SPRINT_STATUS.md) | Sprint progress tracker and automated verification evidence |
+| [docs/remediation/DEFECT_REGISTER.md](file:///d:/PROJECTS/BUSify/docs/remediation/DEFECT_REGISTER.md) | Stable-ID defect register and remediation tracking |
 | [CHANGELOG.md](file:///d:/PROJECTS/BUSify/CHANGELOG.md) | Comprehensive development changelog |
