@@ -55,6 +55,9 @@ export default function OfficeLayout({
   const [simulationResult, setSimulationResult] = useState(null);
   const [selectedTripSheet, setSelectedTripSheet] = useState(null);
   const [broadcastConfirmed, setBroadcastConfirmed] = useState(false);
+  const [approvingPlan, setApprovingPlan] = useState(false);
+  const [planApprovalError, setPlanApprovalError] = useState(null);
+  const [planApprovalSuccess, setPlanApprovalSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
   const [manifestError, setManifestError] = useState(null);
   const [simulating, setSimulating] = useState(false);
@@ -133,9 +136,27 @@ export default function OfficeLayout({
     loadRoutes();
   }, [selectedArea, selectedDate, activeInstitution?.campus_lat, activeInstitution?.campus_lng, transitDirection]);
 
-  const handleBroadcast = () => {
-    setBroadcastConfirmed(true);
-    setTimeout(() => setBroadcastConfirmed(false), 5000);
+  const handleBroadcast = async () => {
+    if (!isAuthenticated) {
+      onRequestSignIn?.();
+      return;
+    }
+    setApprovingPlan(true);
+    setPlanApprovalError(null);
+    try {
+      const targetDate = selectedDate || new Date().toISOString().split('T')[0];
+      const res = await api.approvePlan(targetDate, activeScenario);
+      setBroadcastConfirmed(true);
+      setPlanApprovalSuccess(res.message || "Daily dispatch plan approved and persisted to database.");
+      const updatedManifest = await api.getOperationalManifest(targetDate, activeScenario);
+      setManifestData(updatedManifest);
+      setTimeout(() => setBroadcastConfirmed(false), 8000);
+    } catch (err) {
+      console.error("Failed to approve dispatch plan:", err);
+      setPlanApprovalError(describeError(err));
+    } finally {
+      setApprovingPlan(false);
+    }
   };
 
   const handleRunSimulation = async () => {
@@ -330,6 +351,10 @@ export default function OfficeLayout({
     handleSaveBus,
     handleDeleteBus,
     handleBroadcast,
+    approvingPlan,
+    planApprovalError,
+    setPlanApprovalError,
+    planApprovalSuccess,
     handleRunSimulation,
     comparisonChartData,
   };

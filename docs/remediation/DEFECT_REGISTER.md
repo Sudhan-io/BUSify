@@ -67,11 +67,9 @@
 | **M-05** | `backend/Dockerfile` DB path mismatch | Confirmed | `backend/Dockerfile` | Sprint-8 |
 | **M-06** | `frontend/Dockerfile` build arg `VITE_API_BASE_URL` never reaches client | Confirmed | `frontend/Dockerfile`, `services/api.js:3` | Sprint-8 |
 | **M-07** | Two divergent `requirements.txt` files | Confirmed | root + `backend/` | Sprint-0 |
-| **M-09** | `manifest` table `.slice(0,10)` with no pagination label | Confirmed | `OfficeDashboard.jsx:410` | Sprint-4 |
 | **M-10** | `.xlsx` advertised in UI but file input only accepts `.csv,.txt` | Confirmed | `OfficeDashboard.jsx:720,789` | Sprint-5 |
 | **M-11** | `base.metadata.create_all()` at import time — should be lifespan handler | Confirmed | `main.py:10` | Sprint-8 |
 | **M-12** | Raw `ALTER TABLE` migration at import in `routes_buses.py` | Confirmed | `routes_buses.py:59` | Sprint-8 |
-| **M-13** | `Plan` model unused (no read, no write path) | Confirmed | `models/plan.py` | Sprint-4 |
 | **M-17** | `H-04`: N+1 serial OSRM calls in CSV benchmark (one per bus) | Confirmed | `routes_workflow.py:469,533` | Sprint-5 |
 
 ---
@@ -128,3 +126,5 @@ Verified items with recorded regression test evidence:
 | DATA-005 (H-12) | Corrected simulator trips denominator to use actual baseline allocation and dynamic allocation sums instead of static fleet size | Verified: `test_sprint2_algorithms.py`, `test_sprint3_api.py`, regression suite pass |
 | M-04 | Documented diesel consumption (3.8 km/L), operational days (220/yr), diesel price (₹94.5/L), and carbon intensity (2.68 kg CO2/L) in benchmark savings | Verified: code comments and formulas aligned in `routes_workflow.py` |
 | M-03 | Clarified CSV benchmark route computation as an angular polar-sweep clustering heuristic for fast upload feedback vs. full CVRP MIP | Verified in Sprint-3: documented in `routes_workflow.py:600-605`, tests passing |
+| M-09 | Replaced hardcoded `.slice(0,10)` with full responsive client-side pagination (10, 25, 50, All), item counts, and zone filtering in `DispatchManifest.jsx` | Verified in Sprint-4: `npm run lint` clean, build clean, table navigates all records |
+| M-13 (H-21) | `Plan` model wired with read/write paths, schema migration, authenticated approval endpoint `POST /api/workflow/plan/approve`, duplicate assignment guards, and atomic persistence | Verified in Sprint-4: 7 focused tests passing in `test_sprint4_manifest_and_plan.py` + regression suite |

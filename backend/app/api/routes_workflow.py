@@ -1,16 +1,18 @@
 import csv
 import io
+import json
 import math
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, HTTPException, Body, UploadFile, File, Form, Response
+from fastapi import APIRouter, Depends, Query, HTTPException, Body, UploadFile, File, Form, Response, status
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from backend.app.database import get_db
 from backend.app.auth.auth_service import require_admin
 from backend.app.models.bus import Bus
 from backend.app.models.stop import Stop
+from backend.app.models.plan import Plan
 from backend.app.models.registration import Registration
 from backend.app.models.student_attendance import StudentAttendance
 from backend.app.core.forecasting.lightgbm_model import forecaster
@@ -46,6 +48,12 @@ class OptOutRequest(BaseModel):
     student_roll: str
     traveling_today: bool
     date: Optional[str] = None
+
+
+class PlanApprovalRequest(BaseModel):
+    date: str = Field(..., description="Target dispatch date (YYYY-MM-DD)")
+    slot: str = Field(default="morning", description="Operational slot (morning or evening)")
+    scenario: str = Field(default="REGULAR", description="Academic scenario")
 
 
 # ── Student identity ────────────────────────────────────────────────────────
@@ -127,9 +135,22 @@ def get_operational_manifest(
     alloc_res = fleet_allocator.solve(forecasts, baseline)
     optimized_allocation = alloc_res["allocation"]
 
-    # 3. Assemble Driver Dispatch Sheets for active vehicles
+    # 3. Assemble Driver Dispatch Sheets for active vehicles sourced from database
+    try:
+        active_buses = db.query(Bus).filter(Bus.is_active == True).order_by(Bus.bus_id).all()
+        unique_active_buses = {b.bus_id: b for b in active_buses}.values()
+        deployed_seats = sum(int(b.seats) for b in unique_active_buses if b.seats is not None)
+    except Exception as err:
+        raise HTTPException(status_code=500, detail=f"Database error querying active fleet: {str(err)}")
+
+    # Check whether a persisted plan exists in DB for this date and slot
+    persisted_plans = db.query(Plan).filter(Plan.date == target_date, Plan.slot == "morning").all()
+    is_plan_approved = len(persisted_plans) > 0
+
+    available_by_area = {a: [b for b in active_buses if b.default_area_id == a] for a in AREAS_CONFIG.keys()}
+    assigned_bus_ids = set()
     manifest = []
-    bus_idx = 1
+    has_insufficient_fleet = False
 
     for area_id, bus_count in optimized_allocation.items():
         area_info = AREAS_CONFIG.get(area_id, {})
@@ -142,21 +163,46 @@ def get_operational_manifest(
         active_routes = routes_res.get("routes", [])
 
         for r_i, route in enumerate(active_routes):
-            driver = DRIVERS_ROSTER[(bus_idx - 1) % len(DRIVERS_ROSTER)]
-            bus_code = f"BUS-{bus_idx:02d}"
+            # 1. Match eligible active bus from home area
+            eligible_bus = None
+            for b in available_by_area.get(area_id, []):
+                if b.bus_id not in assigned_bus_ids:
+                    eligible_bus = b
+                    break
+            # 2. If home area fleet exhausted, borrow from pool of available active buses
+            if not eligible_bus:
+                for b in active_buses:
+                    if b.bus_id not in assigned_bus_ids:
+                        eligible_bus = b
+                        break
 
             # Calculate start and end pickup times
             itinerary = route.get("itinerary", [])
             first_pickup = itinerary[0]["time"] if itinerary else settings.EARLIEST_ROUTE_DEPARTURE
             campus_arrival = settings.FIRST_CLASS_ARRIVAL_TIME
 
+            if eligible_bus:
+                assigned_bus_ids.add(eligible_bus.bus_id)
+                bus_code = eligible_bus.bus_id
+                driver_name = eligible_bus.driver_name or "Assigned College Driver"
+                driver_phone = eligible_bus.driver_phone or "+91 90000 00001"
+                bus_capacity = int(eligible_bus.seats) if eligible_bus.seats is not None else settings.DEFAULT_BUS_CAPACITY
+                route_status = "APPROVED" if is_plan_approved else "PENDING_APPROVAL"
+            else:
+                has_insufficient_fleet = True
+                bus_code = "UNASSIGNED"
+                driver_name = "UNASSIGNED (Fleet Shortage)"
+                driver_phone = "N/A"
+                bus_capacity = settings.DEFAULT_BUS_CAPACITY
+                route_status = "UNASSIGNED_INSUFFICIENT_FLEET"
+
             manifest.append({
                 "bus_code": bus_code,
                 "area_id": area_id,
                 "area_name": area_info.get("name", area_id),
-                "driver_name": driver["name"],
-                "driver_phone": driver["phone"],
-                "capacity": settings.DEFAULT_BUS_CAPACITY,
+                "driver_name": driver_name,
+                "driver_phone": driver_phone,
+                "capacity": bus_capacity,
                 "allocated_riders": route.get("total_riders", 0),
                 "utilization_pct": route.get("utilization_pct", 0.0),
                 "departure_time": format_12h(first_pickup),
@@ -177,19 +223,11 @@ def get_operational_manifest(
                     for s in itinerary
                     if s.get("node_type") == "pickup_stop"
                 ],
-                "status": "APPROVED_DISPATCHED",
+                "status": route_status,
+                "is_approved": is_plan_approved,
             })
-            bus_idx += 1
 
     capacity = settings.DEFAULT_BUS_CAPACITY
-    try:
-        active_buses = db.query(Bus).filter(Bus.is_active == True).all()
-        # Ensure unique physical buses to prevent double counting
-        unique_active_buses = {b.bus_id: b for b in active_buses}.values()
-        deployed_seats = sum(int(b.seats) for b in unique_active_buses if b.seats is not None)
-    except Exception as err:
-        raise HTTPException(status_code=500, detail=f"Database error querying active fleet: {str(err)}")
-
     total_riders = sum(m["allocated_riders"] for m in manifest)
     overall_utilization_pct = round(total_riders / deployed_seats * 100, 1) if deployed_seats > 0 else 0.0
 
@@ -237,6 +275,143 @@ def get_operational_manifest(
             abs(optimized_allocation.get(a, 0) - baseline.get(a, 0))
             for a in optimized_allocation
         ),
+        "plan_status": "APPROVED" if is_plan_approved else ("INSUFFICIENT_FLEET" if has_insufficient_fleet else "DRAFT"),
+        "is_approved": is_plan_approved,
+        "has_insufficient_fleet": has_insufficient_fleet,
+    }
+
+@router.post("/plan/approve", dependencies=[Depends(require_admin)])
+def approve_daily_dispatch_plan(
+    payload: PlanApprovalRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Validates and officially approves today's fleet dispatch manifest,
+    persisting route assignments to the database plans table (Resolves M-13 / H-21).
+    Enforces transport officer authentication and uses database transactions.
+    """
+    target_date = payload.date
+    slot = payload.slot or "morning"
+    scenario = payload.scenario or "REGULAR"
+
+    # 1. Generate full operational manifest for validation
+    manifest_payload = get_operational_manifest(date=target_date, scenario=scenario, db=db)
+    manifest_rows = manifest_payload.get("manifest", [])
+
+    if not manifest_rows:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Cannot approve empty manifest: no routes scheduled.",
+        )
+
+    # 2. Validate fleet readiness and absence of shortages
+    unassigned = [m for m in manifest_rows if m["bus_code"] == "UNASSIGNED"]
+    if unassigned:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Cannot approve dispatch: {len(unassigned)} route(s) lack assigned vehicles due to fleet shortage.",
+        )
+
+    assigned_buses = [m["bus_code"] for m in manifest_rows]
+    if len(assigned_buses) != len(set(assigned_buses)):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Duplicate bus assignment detected in manifest.",
+        )
+
+    # Verify all assigned buses are active in database
+    db_active_ids = {
+        b[0]
+        for b in db.query(Bus.bus_id)
+        .filter(Bus.is_active == True, Bus.bus_id.in_(assigned_buses))
+        .all()
+    }
+    invalid_buses = set(assigned_buses) - db_active_ids
+    if invalid_buses:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Assigned buses are inactive or missing from database: {sorted(invalid_buses)}",
+        )
+
+    # 3. Transactional persistence: atomically replace prior plan for (date, slot)
+    try:
+        db.query(Plan).filter(Plan.date == target_date, Plan.slot == slot).delete()
+        created_plans = []
+        for m in manifest_rows:
+            route_summary = {
+                "bus_code": m["bus_code"],
+                "driver_name": m["driver_name"],
+                "driver_phone": m["driver_phone"],
+                "capacity": m["capacity"],
+                "allocated_riders": m["allocated_riders"],
+                "departure_time": m["departure_time"],
+                "departure_time_24h": m["departure_time_24h"],
+                "campus_arrival": m["campus_arrival"],
+                "campus_arrival_24h": m["campus_arrival_24h"],
+                "stops_list": m.get("stops_list", []),
+                "stops_detail": m.get("stops_detail", []),
+                "total_distance_km": m.get("total_distance_km", 0.0),
+            }
+            plan = Plan(
+                date=target_date,
+                slot=slot,
+                bus_id=m["bus_code"],
+                area_id=m["area_id"],
+                scenario=scenario,
+                status="APPROVED",
+                total_riders=m["allocated_riders"],
+                route_json=json.dumps(route_summary),
+                created_at=datetime.now(timezone.utc),
+            )
+            db.add(plan)
+            created_plans.append(plan)
+
+        db.commit()
+        for p in created_plans:
+            db.refresh(p)
+    except Exception as err:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to persist dispatch plan: {str(err)}",
+        )
+
+    return {
+        "success": True,
+        "status": "APPROVED",
+        "message": f"Successfully approved and persisted daily dispatch plan for {target_date} ({len(created_plans)} routes).",
+        "date": target_date,
+        "slot": slot,
+        "scenario": scenario,
+        "total_routes": len(created_plans),
+        "plan_ids": [p.plan_id for p in created_plans],
+    }
+
+@router.get("/plan/status")
+def get_plan_status(
+    date: str = Query(..., description="Date (YYYY-MM-DD)"),
+    slot: str = Query(default="morning", description="Operational slot"),
+    db: Session = Depends(get_db),
+):
+    """Retrieves persisted dispatch plan approval status from database."""
+    plans = db.query(Plan).filter(Plan.date == date, Plan.slot == slot).all()
+    if not plans:
+        return {
+            "exists": False,
+            "status": "DRAFT",
+            "date": date,
+            "slot": slot,
+            "total_routes": 0,
+            "created_at": None,
+        }
+    return {
+        "exists": True,
+        "status": plans[0].status or "APPROVED",
+        "date": date,
+        "slot": slot,
+        "scenario": plans[0].scenario or "REGULAR",
+        "total_routes": len(plans),
+        "created_at": plans[0].created_at.isoformat() if plans[0].created_at else None,
     }
 
 @router.get("/student-profile")
@@ -274,7 +449,12 @@ def get_student_profile(
         "AREA_D": ("BUS-33", DRIVERS_ROSTER[7]),
         "AREA_E": ("BUS-45", DRIVERS_ROSTER[9]),
     }
-    bus_code, driver = area_bus_mapping.get(assigned_stop.area_id, ("BUS-01", DRIVERS_ROSTER[0]))
+    bus_code, fallback_driver = area_bus_mapping.get(assigned_stop.area_id, ("BUS-01", DRIVERS_ROSTER[0]))
+    bus_row = db.query(Bus).filter(Bus.bus_id == bus_code).first()
+    driver = {
+        "name": (bus_row.driver_name if bus_row and bus_row.driver_name else fallback_driver["name"]),
+        "phone": (bus_row.driver_phone if bus_row and bus_row.driver_phone else fallback_driver["phone"]),
+    }
 
     # Deterministic seat number between 1 and 55
     seat_num = (int(student_hash[4:8], 16) % 52) + 1

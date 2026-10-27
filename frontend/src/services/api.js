@@ -164,6 +164,21 @@ export const api = {
     return res.data;
   },
 
+  approvePlan: async (date, scenario = 'REGULAR', slot = 'morning') => {
+    const res = await apiClient.post('/workflow/plan/approve', {
+      date,
+      scenario,
+      slot,
+    });
+    return res.data;
+  },
+
+  getPlanStatus: async (date, slot = 'morning') => {
+    const params = { date, slot };
+    const res = await apiClient.get('/workflow/plan/status', { params });
+    return res.data;
+  },
+
   getStudents: async () => {
     const res = await apiClient.get('/workflow/students');
     return res.data?.students || [];
