@@ -180,8 +180,16 @@ def get_operational_manifest(
             bus_idx += 1
 
     capacity = settings.DEFAULT_BUS_CAPACITY
-    deployed_seats = len(manifest) * capacity
+    try:
+        active_buses = db.query(Bus).filter(Bus.is_active == True).all()
+        # Ensure unique physical buses to prevent double counting
+        unique_active_buses = {b.bus_id: b for b in active_buses}.values()
+        deployed_seats = sum(int(b.seats) for b in unique_active_buses if b.seats is not None)
+    except Exception as err:
+        raise HTTPException(status_code=500, detail=f"Database error querying active fleet: {str(err)}")
+
     total_riders = sum(m["allocated_riders"] for m in manifest)
+    overall_utilization_pct = round(total_riders / deployed_seats * 100, 1) if deployed_seats > 0 else 0.0
 
     return {
         "date": target_date,
@@ -191,7 +199,7 @@ def get_operational_manifest(
         "total_active_buses": len(manifest),
         "total_seats_deployed": deployed_seats,
         "total_expected_riders": total_riders,
-        "overall_utilization_pct": round(total_riders / max(deployed_seats, 1) * 100, 1),
+        "overall_utilization_pct": overall_utilization_pct,
         "total_standing": alloc_res.get("total_standing", 0),
         "total_empty": alloc_res.get("total_empty", 0),
         "churn": alloc_res.get("total_churn", 0),

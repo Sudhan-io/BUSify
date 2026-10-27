@@ -22,7 +22,7 @@
 |:---|:---|:---|:---|:---|:---|
 | Sprint-0 | Baseline, loading states, dead code removal | **DONE** | No hardcoded fallback numbers; loading spinner renders; API errors shown inline; dead files removed; environment verified | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed, 0 failed |
 | Sprint-1 | App shell, navigation, routing | **DONE** | React Router installed; 7 office tabs navigable; student has 3 sections; existing state logic preserved | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed; Browser subagent: 7 routes + student + 404 verified |
-| Sprint-2 | Data integrity, institution persistence | **IN PROGRESS** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | None | Task 2.1 complete: SEC-001 & M-02 verified; 58 tests passed, build/lint clean |
+| Sprint-2 | Data integrity, institution persistence | **IN PROGRESS** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | None | Tasks 2.1 & 2.4 complete: SEC-001, M-02, DATA-002 verified; 65 tests passed |
 | Sprint-3 | Daily Planning workflow | **NOT STARTED** | Guided 4-step flow; constraint display; allocation review; no conflicting baselines | Requires Sprint-2 | — |
 | Sprint-4 | Dispatch Manifest — real buses, approval guard | **NOT STARTED** | Manifest uses DB buses/drivers; table paginated; dispatch endpoint creates Plan; button disabled without valid manifest | Requires Sprint-3 | — |
 | Sprint-5 | Fleet & Drivers + Students & Demand management | **NOT STARTED** | Fleet CRUD in dedicated page; student demand aggregation | Requires Sprint-1, Sprint-2 | — |
@@ -134,8 +134,8 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 **Key tasks:**
 1. [x] Persist `INSTITUTIONS_REGISTRY` to a DB table (SEC-001 / C-04) — *Task 2.1 complete*.
 2. [x] Canonical campus coordinates: extract to a single constant consumed by all components (M-02) — *Task 2.1 complete*.
-3. [ ] `total_seats_deployed`: use `sum(bus.seats for active buses)` not `len(manifest) * DEFAULT_BUS_CAPACITY` (DATA-002) — *Next: Task 2.4*.
-4. [ ] Define seating equity metric explicitly; compute per-area utilization variance; expose it from the API (DATA-003) — *Task 2.5*.
+3. [x] `total_seats_deployed`: use `sum(bus.seats for active buses)` not `len(manifest) * DEFAULT_BUS_CAPACITY` (DATA-002) — *Task 2.4 complete*.
+4. [ ] Define seating equity metric explicitly; compute per-area utilization variance; expose it from the API (DATA-003) — *Next: Task 2.5*.
 5. [ ] Disaggregator zero-division guard (DATA-004 / H-11) — *Task 2.6*.
 6. [ ] Demand/capacity bar chart: render loading and empty states; verify `forecastData` shape matches bar keys (M-15) — *Task 2.7*.
 
@@ -251,3 +251,26 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 
 **Outstanding defects from this task:** None.
 **Next task for next session:** Sprint-2 Task 2.4 — Fix `total_seats_deployed` in `routes_workflow.py:120` to use `sum(b.seats for b in active_buses)` (DATA-002).
+
+---
+
+## Handoff Note — Sprint-2 Task 2.4 — 2026-10-27
+
+**Completed tasks:**
+- **Task 2.4 (DATA-002):** Replaced flawed calculation `len(manifest) * capacity` in [backend/app/api/routes_workflow.py](file:///d:/PROJECTS/BUSify/backend/app/api/routes_workflow.py) with authoritative database query summing `Bus.seats` across all active buses (`Bus.is_active == True`). De-duplicated by `bus_id` to prevent multi-reference double counting. Returns 0 and 0.0% utilization if active fleet is empty.
+- **Testing:** Created [backend/app/tests/test_sprint2_seats_deployed.py](file:///d:/PROJECTS/BUSify/backend/app/tests/test_sprint2_seats_deployed.py) with 5 regression tests covering mixed bus capacities, exclusion of inactive buses, empty fleet handling, manifest length independence, and API response contract compatibility.
+
+**Modified files:**
+- `backend/app/api/routes_workflow.py` (authoritative `total_seats_deployed` computation)
+- `backend/app/tests/test_sprint2_seats_deployed.py` (New 5 focused tests)
+- `docs/remediation/DEFECT_REGISTER.md` (DATA-002 moved to DONE)
+- `docs/remediation/SPRINTS/SPRINT-02.md` (Task 2.4 marked COMPLETED)
+- `docs/remediation/SPRINT_STATUS.md` (Task 2.4 updated)
+
+**Verification results:**
+- Focused Tests: `py -3.12 -m pytest backend/app/tests/test_sprint2_seats_deployed.py` PASSED (5 passed, 0 failed in 30.71s).
+- Full Regression Suite: `py -3.12 -m pytest backend/app/tests/ -v --tb=short` PASSED (65 passed, 0 failed in 84.60s).
+- Code Hygiene: `git diff --check` PASSED (clean, 0 whitespace errors).
+
+**Outstanding defects from this task:** None.
+**Next task for next session:** Sprint-2 Task 2.5 — Define seating equity metric explicitly; compute per-area utilization variance; expose it from the API (DATA-003). Follow `docs/remediation/SPRINTS/SPRINT-02.md`.

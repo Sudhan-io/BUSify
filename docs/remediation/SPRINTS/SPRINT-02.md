@@ -90,7 +90,7 @@ All map components receive `activeInstitution.campus_lat` / `.campus_lng` as pro
 
 ---
 
-### Task 2.4 — Fix `total_seats_deployed`
+### Task 2.4 — Fix `total_seats_deployed` `[COMPLETED]`
 
 In `backend/app/api/routes_workflow.py:120`:
 
@@ -154,13 +154,13 @@ Add: if `loading`, render a skeleton. If `!loading && comparisonChartData.length
 ## Acceptance Criteria
 
 - [x] Institution list persists through backend restart.
-- [ ] `total_seats_deployed` equals actual sum of active bus seats.
+- [x] `total_seats_deployed` equals actual sum of active bus seats.
 - [ ] `seating_equity_pct` field present in manifest response.
 - [x] Campus coordinates: all map components use `activeInstitution` props, not hardcoded literals.
 - [ ] Demand/capacity chart shows loading skeleton and empty state.
 - [ ] Disaggregator raises 422 when area has no stops.
 - [x] `npm run build` and `npm run lint` clean.
-- [x] No backend tests regressed (58 passed).
+- [x] No backend tests regressed (65 passed).
 
 ---
 

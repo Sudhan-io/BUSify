@@ -38,7 +38,6 @@
 
 | ID | Title | Confidence | Affected files | User impact | Fix | Sprint |
 |:---|:---|:---|:---|:---|:---|:---|
-| **DATA-002** | `total_seats_deployed` uses `len(manifest) * DEFAULT_BUS_CAPACITY` not actual per-bus seats | Confirmed | `routes_workflow.py:120` | Seat count wrong when fleet has mixed capacities | Use `sum(bus.seats)` from active buses | Sprint-2 |
 | **DATA-003** | Seating equity is undefined — UI shows "100% equity" when `total_standing == 0` without any equity calculation | Confirmed | `OfficeDashboard.jsx:351` | Misleading claim — equity is not the same as zero standing | Define equity metric explicitly (e.g., Gini coefficient of utilization across areas); compute and display it | Sprint-2 |
 | **DISPATCH-001** | "Approve & Dispatch" button has no server-side guard — `handleBroadcast` is client-only | Confirmed | `OfficeDashboard.jsx:110-113`, `routes_workflow.py` (no dispatch endpoint) | Empty or stale manifest can be "dispatched" with no backend validation | Add `POST /api/workflow/dispatch` that validates manifest, creates a `Plan` record, and returns a dispatch ID | Sprint-4 |
 | **DISPATCH-002** | `Plan` model has no reader or writer — approved manifests are discarded immediately | Confirmed | `models/plan.py`, zero callers | No audit trail for approved trips | Implement dispatch persistence via `Plan` model | Sprint-4 |
@@ -130,3 +129,4 @@ See `docs/OUTSTANDING_ISSUES.md` §2 for full descriptions and verification evid
 | M-14 | Added `@keyframes pulse-dot` and `@media (prefers-reduced-motion: reduce)` to `.pulse` class in `frontend/src/index.css` | Verified in Sprint-1; CSS build succeeds |
 | SEC-001 (C-04) | `Institution` ORM model persisted to `institutions` DB table, idempotent startup seed, active campus switching, process-global in-memory registry eliminated | Verified in Sprint-2 Task 2.1; 6 unit tests passing across DB sessions + regression suite |
 | M-02 | Campus coordinates canonicalized to `(10.95488, 77.95462)` in `backend.app.core.config.settings` and `frontend/src/constants/institution.js`; divergent `(10.95485, 77.95463)` removed | Verified in Sprint-2 Task 2.1; 0 conflicting coordinate matches in repo, tests passing |
+| DATA-002 | `total_seats_deployed` in `/api/workflow/operational-manifest` computes sum of seats from database active buses (`Bus.is_active == True`), replacing `len(manifest) * capacity` | Verified in Sprint-2 Task 2.4; 5 focused tests passing + full regression suite (65 passed) |
