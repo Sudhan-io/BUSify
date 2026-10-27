@@ -183,6 +183,16 @@ export default function StudentView({ selectedDate, activeInstitution, onSelectI
               </div>
             )}
 
+            {/* Loading indicator */}
+            {loading && (
+              <div
+                className="rounded-lg border border-[#dfe5df] bg-[#f7f8f5] px-3 py-2 text-xs text-[#69716d] flex items-center gap-2 animate-pulse"
+              >
+                <RefreshCw className="h-3.5 w-3.5 animate-spin text-[#ff6b00]" />
+                <span>Loading commuter boarding pass...</span>
+              </div>
+            )}
+
             {/* Ticket Header */}
             <div className="flex items-center justify-between border-b border-[#edf1ed] pb-3">
               <div>
@@ -190,7 +200,7 @@ export default function StudentView({ selectedDate, activeInstitution, onSelectI
                 <h4 className="card-title text-xl font-bold">
                   {/* Was `|| 'BUS-02'`, which rendered a plausible-looking bus code
                       on total API failure. */}
-                  {studentProfile?.assigned_bus_code || (loading ? '—' : 'Unavailable')}
+                  {studentProfile?.assigned_bus_code || (loading ? 'Loading...' : 'Unavailable')}
                 </h4>
                 <p className="text-xs text-[#69716d]">
                   Roll No: <span className="font-mono font-bold text-[#18201d]">{studentRoll}</span>
@@ -199,7 +209,7 @@ export default function StudentView({ selectedDate, activeInstitution, onSelectI
                   )}
                 </p>
               </div>
-              <StatusBadge status={studentProfile?.crowd_level || 'UNKNOWN'} size="lg" />
+              <StatusBadge status={studentProfile?.crowd_level || (loading ? 'CHECKING' : 'UNKNOWN')} size="lg" />
             </div>
 
             {/* Guaranteed Seat & Timings */}
@@ -207,14 +217,28 @@ export default function StudentView({ selectedDate, activeInstitution, onSelectI
               <div>
                 <span className="kicker" style={{ margin: '0 0 2px' }}>ASSIGNED SEAT</span>
                 <div className="stat-number text-xl text-[#18201d]">
-                  {studentProfile?.seat_number}
+                  {loading ? '—' : (studentProfile?.seat_number ?? '—')}
                 </div>
-                <span className="text-[10px] text-[#2b6e3b] font-bold block">Confirmed &bull; No Standing</span>
+                <span className={`text-[10px] font-bold block ${
+                  loading || !studentProfile
+                    ? 'text-[#69716d]'
+                    : studentProfile.traveling_today
+                    ? 'text-[#2b6e3b]'
+                    : 'text-[#c0392b]'
+                }`}>
+                  {loading
+                    ? 'Checking seating status...'
+                    : !studentProfile
+                    ? 'Unavailable'
+                    : studentProfile.traveling_today
+                    ? 'Confirmed • No Standing'
+                    : 'Seat Released • On Leave'}
+                </span>
               </div>
               <div>
                 <span className="kicker" style={{ margin: '0 0 2px' }}>PICKUP DEPARTURE</span>
                 <div className="stat-number text-xl text-[#18201d]">
-                  {studentProfile?.pickup_time}
+                  {loading ? '—' : (studentProfile?.pickup_time ?? '—')}
                 </div>
                 <span className="text-[10px] text-[#69716d] block">Be at stop 5 min early</span>
               </div>
@@ -225,7 +249,7 @@ export default function StudentView({ selectedDate, activeInstitution, onSelectI
               <div className="flex items-start justify-between border-b border-[#edf1ed] pb-2">
                 <div>
                   <span className="text-[#69716d] block">Pickup Location</span>
-                  <span className="font-bold text-[#18201d] text-sm">{assignedStop?.name}</span>
+                  <span className="font-bold text-[#18201d] text-sm">{loading ? 'Loading stop...' : (assignedStop?.name || '—')}</span>
                   <span className="text-[11px] text-[#69716d] block">Zone: {assignedStop?.area_id} ({assignedStop?.campus_distance_km} km to campus)</span>
                 </div>
                 <span className="badge badge-blue">{assignedStop?.stop_id}</span>
@@ -234,7 +258,7 @@ export default function StudentView({ selectedDate, activeInstitution, onSelectI
               <div className="flex items-center justify-between pt-1">
                 <div>
                   <span className="text-[#69716d] block">Bus Captain (Driver)</span>
-                  <span className="font-bold text-[#18201d]">{studentProfile?.driver_name}</span>
+                  <span className="font-bold text-[#18201d]">{loading ? '—' : (studentProfile?.driver_name || '—')}</span>
                 </div>
                 <a
                   href={`tel:${studentProfile?.driver_phone}`}
@@ -250,12 +274,14 @@ export default function StudentView({ selectedDate, activeInstitution, onSelectI
             <div className="space-y-1.5 pt-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-semibold text-[#18201d]">Expected Occupancy</span>
-                <span className="font-bold text-[#18201d]">{studentProfile?.occupancy_pct}% Full (55 Seats)</span>
+                <span className="font-bold text-[#18201d]">
+                  {loading ? '—' : (studentProfile?.occupancy_pct != null ? `${studentProfile.occupancy_pct}% Full (55 Seats)` : 'Unavailable')}
+                </span>
               </div>
               <div className="w-full bg-[#dfe5df] rounded-full h-2 overflow-hidden">
                 <div
                   className="bg-[#18201d] h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${studentProfile?.occupancy_pct || 75}%` }}
+                  style={{ width: `${studentProfile?.occupancy_pct || 0}%` }}
                 />
               </div>
             </div>
@@ -266,7 +292,13 @@ export default function StudentView({ selectedDate, activeInstitution, onSelectI
                 <div>
                   <span className="font-bold text-xs text-[#18201d] block">Commuting Schedule Action</span>
                   <span className="text-[11px] text-[#69716d]">
-                    {studentProfile?.traveling_today ? 'Traveling today on morning route' : 'Taking leave / private vehicle'}
+                    {loading
+                      ? 'Checking attendance status...'
+                      : !studentProfile
+                      ? 'Status unavailable'
+                      : studentProfile.traveling_today
+                      ? 'Traveling today on morning route'
+                      : 'Taking leave / private vehicle'}
                   </span>
                 </div>
                 <button

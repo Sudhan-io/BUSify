@@ -1,6 +1,6 @@
 # Sprint-0 — Baseline, Loading States, Dead Code Removal
 
-**Status:** NOT STARTED  
+**Status:** DONE
 **Objective:** Establish an honest, verifiable baseline before any navigation or UX restructuring.  
 **User-visible outcome:** No hardcoded operational numbers appear while data loads. API failures show inline messages. Page title is correct.
 
@@ -191,14 +191,14 @@ If no imports found: delete `frontend/src/App.css` and `frontend/tailwind.config
 
 All must be verified before marking Sprint-0 DONE:
 
-- [ ] `npm run build` succeeds with 0 errors.
-- [ ] `npm run lint` reports 0 errors.
-- [ ] Hero section shows `—` during loading, not `50`/`2750`.
-- [ ] KPI cards show a loading state during initial data fetch.
-- [ ] Bus save/delete errors appear as inline alerts, not `alert()` dialogs.
-- [ ] `StudentView` boarding pass shows a loading indicator.
-- [ ] Page title reads "BUSify | Transit Intelligence".
-- [ ] Baseline backend test results recorded in `SPRINT_STATUS.md` (pass/fail/skip counts).
+- [x] `npm run build` succeeds with 0 errors.
+- [x] `npm run lint` reports 0 errors.
+- [x] Hero section shows `—` during loading, not `50`/`2750`.
+- [x] KPI cards show a loading state during initial data fetch.
+- [x] Bus save/delete errors appear as inline alerts, not `alert()` dialogs.
+- [x] `StudentView` boarding pass shows a loading indicator.
+- [x] Page title reads "BUSify | Transit Intelligence".
+- [x] Baseline backend test results recorded in `SPRINT_STATUS.md` (pass/fail/skip counts).
 
 ---
 

@@ -39,7 +39,6 @@
 | ID | Title | Confidence | Affected files | User impact | Fix | Sprint |
 |:---|:---|:---|:---|:---|:---|:---|
 | **NAV-001** | No page-level navigation — entire office UI is one 1278-line scroll | Confirmed | `OfficeDashboard.jsx` (all 1278 lines) | Officer cannot find actions; dispatch mixed with fleet management, map, charts | Extract sections into route components; add React Router | Sprint-1 |
-| **DATA-001** | Dashboard hardcodes `50 buses / 2750 seats / 2150 riders` as fallback values that appear real | Confirmed | `OfficeDashboard.jsx:269`, `:334`, `:342` | Officer sees fabricated numbers as operational data when API is slow | Remove fallback literals; render explicit loading/error states | Sprint-0 / Sprint-2 |
 | **DATA-002** | `total_seats_deployed` uses `len(manifest) * DEFAULT_BUS_CAPACITY` not actual per-bus seats | Confirmed | `routes_workflow.py:120` | Seat count wrong when fleet has mixed capacities | Use `sum(bus.seats)` from active buses | Sprint-2 |
 | **DATA-003** | Seating equity is undefined — UI shows "100% equity" when `total_standing == 0` without any equity calculation | Confirmed | `OfficeDashboard.jsx:351` | Misleading claim — equity is not the same as zero standing | Define equity metric explicitly (e.g., Gini coefficient of utilization across areas); compute and display it | Sprint-2 |
 | **DISPATCH-001** | "Approve & Dispatch" button has no server-side guard — `handleBroadcast` is client-only | Confirmed | `OfficeDashboard.jsx:110-113`, `routes_workflow.py` (no dispatch endpoint) | Empty or stale manifest can be "dispatched" with no backend validation | Add `POST /api/workflow/dispatch` that validates manifest, creates a `Plan` record, and returns a dispatch ID | Sprint-4 |
@@ -54,7 +53,6 @@
 
 | ID | Title | Confidence | Affected files | User impact | Fix | Sprint |
 |:---|:---|:---|:---|:---|:---|:---|
-| **NAV-002** | Loading state exists but never renders; failures swallowed to console | Confirmed | `OfficeDashboard.jsx:37,69,82` | Blank tables look like empty data, not errors | Show loading spinner; surface errors as inline alerts | Sprint-0 |
 | **NAV-003** | Student roll-number selector exposed before authentication — enumerable | Confirmed | `StudentView.jsx:120-145` | Any visitor sees all registered commuter names and rolls | Replace selector with direct lookup after student auth | Sprint-7 |
 | **NAV-004** | Map zone-filter tabs overflow horizontally and clip on laptop viewport | Confirmed | `OfficeDashboard.jsx:551-563` | Officer cannot reach all zone filters | Use wrapping flex or a scroll container with visible overflow indicator | Sprint-1 |
 | **MAP-001** | `step.arrival_time` field does not exist — solver emits `time` key; 3 UI branches always show `--:--` | Confirmed | `LeafletMap.jsx:358,719,912` | Route arrival times always blank on map and trip sheet | Use `step.time` not `step.arrival_time` | Sprint-6 |
@@ -91,7 +89,6 @@
 | **M-13** | `Plan` model unused (no read, no write path) | Confirmed | `models/plan.py` | Sprint-4 |
 | **M-14** | `M-23`: `.pulse` animation has no `@keyframes`; no `prefers-reduced-motion` | Confirmed | `index.css` | Sprint-1 |
 | **M-15** | Demand vs capacity chart is a bar chart that appears blank when `forecastData` is null | Probable | `OfficeDashboard.jsx:583-601` | Sprint-2 |
-| **M-16** | `alert()` used in 2 error handlers while in-app alert pattern exists | Confirmed | `OfficeDashboard.jsx:207,222` | Sprint-1 |
 | **M-17** | `H-04`: N+1 serial OSRM calls in CSV benchmark (one per bus) | Confirmed | `routes_workflow.py:469,533` | Sprint-5 |
 
 ---
@@ -103,7 +100,6 @@
 | **L-01** | No Content Security Policy | Sprint-8 |
 | **L-02** | OSRM tile fetched from browser (should proxy through backend) | Sprint-6 |
 | **L-03** | Tile URLs hardcoded; map fully broken offline | Sprint-6 |
-| **L-04** | `title` tag says "frontend", no OG meta | Sprint-1 |
 | **L-05** | `index` used as list `key` in several places | Sprint-1 |
 | **L-06** | `datetime.utcnow` (naive) alongside tz-aware columns | Sprint-8 |
 | **L-07** | `.oxlintrc.json` enables only 2 rules | Sprint-8 |
@@ -130,3 +126,7 @@ See `docs/OUTSTANDING_ISSUES.md` §2 for full descriptions and verification evid
 | GIT-001 (2.11) | `.gitignore` created | `git status` |
 | TEST-001 (2.12) | Auth fixture in conftest | Test suite |
 | PRIV-001 (2.13) | Student roster scoped; enumeration closed | Test: unknown roll → 404 |
+| DATA-001 | Removed hardcoded `50 buses / 2750 seats / 2150 riders` fallbacks in `OfficeDashboard.jsx`; explicit `—` and loading skeleton rendered | Verified in Sprint-0; 0 grep matches |
+| NAV-002 | `loading` state rendered in hero, MetricCards, and StudentView boarding pass; `manifestError` and `busError` inline alerts replace console-only errors | Verified in Sprint-0; lint unused-loading warning resolved |
+| M-16 | Replaced `alert()` with inline `busError` alerts in fleet table and bus modal | Verified in Sprint-0; 0 alert() matches |
+| L-04 | Page `<title>` updated to "BUSify | Transit Intelligence" and meta description added in `index.html` | Verified in Sprint-0; build succeeds |

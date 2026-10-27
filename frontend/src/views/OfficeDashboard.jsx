@@ -35,6 +35,7 @@ export default function OfficeDashboard({
   const [selectedTripSheet, setSelectedTripSheet] = useState(null);
   const [broadcastConfirmed, setBroadcastConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [manifestError, setManifestError] = useState(null);
   const [simulating, setSimulating] = useState(false);
   const [simulationError, setSimulationError] = useState(null);
 
@@ -50,6 +51,7 @@ export default function OfficeDashboard({
   const [editingBus, setEditingBus] = useState(null);
   const [busSaveLoading, setBusSaveLoading] = useState(false);
   const [busSuccessMessage, setBusSuccessMessage] = useState(null);
+  const [busError, setBusError] = useState(null);
 
   const [busFormData, setBusFormData] = useState({
     bus_id: '',
@@ -67,6 +69,7 @@ export default function OfficeDashboard({
   useEffect(() => {
     async function loadData() {
       setLoading(true);
+      setManifestError(null);
       try {
         const [manifest, fc, st, buses] = await Promise.all([
           api.getOperationalManifest(selectedDate, activeScenario),
@@ -81,6 +84,8 @@ export default function OfficeDashboard({
         setBroadcastConfirmed(false);
       } catch (err) {
         console.error("Failed to load operational manifest:", err);
+        setManifestError(describeError(err));
+        setManifestData(null);
       } finally {
         setLoading(false);
       }
@@ -159,6 +164,7 @@ export default function OfficeDashboard({
 
   const handleOpenAddBus = () => {
     setEditingBus(null);
+    setBusError(null);
     setBusFormData({
       bus_id: `BUS-${String((busesList.length || 0) + 1).padStart(2, '0')}`,
       registration_no: `TN 47 B ${2000 + (busesList.length || 0) * 12}`,
@@ -175,6 +181,7 @@ export default function OfficeDashboard({
 
   const handleOpenEditBus = (bus) => {
     setEditingBus(bus);
+    setBusError(null);
     setBusFormData({
       bus_id: bus.bus_id,
       registration_no: bus.registration_no || '',
@@ -196,6 +203,7 @@ export default function OfficeDashboard({
       return;
     }
     setBusSaveLoading(true);
+    setBusError(null);
     try {
       if (editingBus) {
         await api.updateBus(editingBus.bus_id, busFormData);
@@ -210,7 +218,7 @@ export default function OfficeDashboard({
       setTimeout(() => setBusSuccessMessage(null), 4000);
     } catch (err) {
       console.error("Failed to save bus:", err);
-      alert(err.response?.data?.detail || "Failed to save bus details.");
+      setBusError(describeError(err));
     } finally {
       setBusSaveLoading(false);
     }
@@ -222,6 +230,7 @@ export default function OfficeDashboard({
       return;
     }
     if (!window.confirm(`Are you sure you want to remove ${busId} from active college fleet?`)) return;
+    setBusError(null);
     try {
       await api.deleteBus(busId);
       setBusesList(prev => prev.filter(b => b.bus_id !== busId));
@@ -229,7 +238,7 @@ export default function OfficeDashboard({
       setTimeout(() => setBusSuccessMessage(null), 4000);
     } catch (err) {
       console.error("Failed to delete bus:", err);
-      alert(err.response?.data?.detail || "Failed to remove bus.");
+      setBusError(describeError(err));
     }
   };
 
@@ -266,8 +275,14 @@ export default function OfficeDashboard({
         <div className="hero-note flex flex-col justify-between">
           <div>
             <span className="note-label">Operational Manifest</span>
-            <strong>{manifestData?.total_active_buses || 50} Active Buses.</strong>
-            <span>{manifestData?.total_seats_deployed || 2750} Confirmed Seats &bull; 0 Standing</span>
+            <strong>
+              {loading ? '— ' : (manifestData?.total_active_buses != null ? `${manifestData.total_active_buses} Active Buses.` : '— Active Buses.')}
+            </strong>
+            <span>
+              {loading ? '— seats' : `${manifestData?.total_seats_deployed != null ? manifestData.total_seats_deployed : '—'} Confirmed Seats`}
+              {' • '}
+              {loading ? '—' : (manifestData?.total_standing != null ? manifestData.total_standing : '—')} Standing
+            </span>
           </div>
           <button
             id="btn-import-stops-hero"
@@ -327,39 +342,53 @@ export default function OfficeDashboard({
         </div>
       )}
 
+      {/* Manifest Error Alert */}
+      {manifestError && (
+        <div
+          role="alert"
+          className="rounded-lg border border-[#f5c6c2] bg-[#fdecea] p-3 text-xs text-[#c0392b] flex items-center justify-between"
+        >
+          <span><strong>Operational Manifest Error:</strong> {manifestError}</span>
+        </div>
+      )}
+
       {/* Key Metric Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Active Vehicles"
-          value={`${manifestData?.total_active_buses || 50} Buses`}
-          subtitle={`${manifestData?.total_seats_deployed || 2750} total seats`}
+          value={manifestData?.total_active_buses != null ? `${manifestData.total_active_buses} Buses` : "—"}
+          subtitle={manifestData?.total_seats_deployed != null ? `${manifestData.total_seats_deployed} total seats` : "—"}
           icon={Bus}
-          tone="sage"
-          badge="Full Fleet"
+          tone={manifestData ? "sage" : "blue"}
+          badge={loading ? "Checking" : (manifestData ? "Full Fleet" : "Unavailable")}
+          loading={loading}
         />
         <MetricCard
           title="Expected Ridership"
-          value={`${manifestData?.total_expected_riders || 2150}`}
-          subtitle={`${manifestData?.overall_utilization_pct || 78.2}% fleet utilization`}
+          value={manifestData?.total_expected_riders != null ? `${manifestData.total_expected_riders}` : "—"}
+          subtitle={manifestData?.overall_utilization_pct != null ? `${manifestData.overall_utilization_pct}% fleet utilization` : "—"}
           icon={Users}
           tone="coral"
-          badge={activeScenario}
+          badge={loading ? "Checking" : (manifestData ? activeScenario : "Unavailable")}
+          loading={loading}
         />
         <MetricCard
           title="Standing Commuters"
-          value={manifestData?.total_standing != null ? `${manifestData.total_standing}` : "0"}
-          subtitle={manifestData?.total_standing > 0 ? "Exceeds seating capacity" : "100% seating equity achieved"}
+          value={manifestData?.total_standing != null ? `${manifestData.total_standing}` : "—"}
+          subtitle={manifestData ? (manifestData.total_standing > 0 ? "Exceeds seating capacity" : "100% seating equity achieved") : "—"}
           icon={ShieldCheck}
-          tone={manifestData?.total_standing > 0 ? "coral" : "sage"}
-          badge={manifestData?.total_standing > 0 ? "Overflow" : "Guaranteed"}
+          tone={manifestData?.total_standing > 0 ? "coral" : (manifestData ? "sage" : "blue")}
+          badge={loading ? "Checking" : (manifestData?.total_standing != null ? (manifestData.total_standing > 0 ? "Overflow" : "Guaranteed") : "Unavailable")}
+          loading={loading}
         />
         <MetricCard
           title="Fleet Churn"
-          value={manifestData?.total_fleet_churn != null ? `${manifestData.total_fleet_churn} Shifts` : (manifestData?.churn != null ? `${manifestData.churn} Shifts` : "0 Shifts")}
+          value={manifestData?.total_fleet_churn != null ? `${manifestData.total_fleet_churn} Shifts` : (manifestData?.churn != null ? `${manifestData.churn} Shifts` : "—")}
           subtitle="Net vehicle reallocations vs baseline"
           icon={RefreshCw}
           tone="yellow"
-          badge="Adaptive"
+          badge={loading ? "Checking" : (manifestData ? "Adaptive" : "Unavailable")}
+          loading={loading}
         />
       </div>
 
@@ -470,6 +499,15 @@ export default function OfficeDashboard({
           <div className="p-3 bg-[#eef5ee] border border-[#cbe3cb] rounded-[7px] text-xs text-[#2b6e3b] flex items-center gap-2 font-medium">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>{busSuccessMessage}</span>
+          </div>
+        )}
+
+        {busError && (
+          <div role="alert" className="p-3 bg-[#fdecea] border border-[#f5c6c2] rounded-[7px] text-xs text-[#c0392b] flex items-center justify-between font-medium">
+            <span>{busError}</span>
+            <button onClick={() => setBusError(null)} className="text-[#c0392b] hover:opacity-75 p-0.5" title="Dismiss error">
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         )}
 
@@ -1137,6 +1175,11 @@ export default function OfficeDashboard({
             </div>
 
             <form onSubmit={handleSaveBus} className="space-y-3.5 text-xs">
+              {busError && (
+                <div role="alert" className="p-2.5 bg-[#fdecea] border border-[#f5c6c2] rounded-[6px] text-xs text-[#c0392b]">
+                  {busError}
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="font-semibold text-[#18201d] block mb-1">Bus Code / ID *</label>
