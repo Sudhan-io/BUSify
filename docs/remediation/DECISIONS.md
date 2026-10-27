@@ -92,13 +92,14 @@
 **Rationale:** Straight-line Haversine produces wrong route polylines. The map draws real roads but the optimizer uses wrong distances. This was identified as a silent correctness failure.
 **Consequence:** When OSRM is unreachable, `/operational-manifest` returns HTTP 500. This is intentional — it surfaces the real failure rather than silently producing wrong routes.
 **Risk:** OSRM must be running for any endpoint that calls the distance matrix. Tests that call these endpoints must skip when OSRM is absent.
-**Status:** Active. Do not re-enable the fallback without an explicit per-endpoint policy.---
+**Status:** Active. Do not re-enable the fallback without an explicit per-endpoint policy.
+
+---
 
 ## ADR-010 — React Router DOM installation and OfficeLayout shared context architecture
 
 **Date:** 2026-10-27 (Sprint-1)
-**Decision:** Install
-eact-router-dom@^7.18.4 and implement OfficeLayout shell providing shared state to 7 route components via <Outlet context={officeContext} />.
-**Rationale:** Preserves zero-regression data synchronization across routes without duplicate network fetches or losing in-flight state (e.g. selected timetable scenario, uploaded spreadsheet benchmark, editing bus modal). Enables deep-linking, direct URL navigation, back/forward history, and dynamic <title> tags.
-**Consequence:** Office destinations (/office/overview, /office/planning, /office/routes, /office/manifest, /office/fleet, /office/students, /office/reports) are independently accessible while sharing authoritative state. Unknown paths route to dedicated 404 page.
+**Decision:** Install `react-router-dom@^7.18.4` and implement `OfficeLayout` shell providing shared state to 7 route components via `<Outlet context={officeContext} />`.
+**Rationale:** Preserves zero-regression data synchronization across routes without duplicate network fetches or losing in-flight state (e.g. selected timetable scenario, uploaded spreadsheet benchmark, editing bus modal). Enables deep-linking, direct URL navigation, back/forward history, and dynamic `<title>` tags.
+**Consequence:** Office destinations (`/office/overview`, `/office/planning`, `/office/routes`, `/office/manifest`, `/office/fleet`, `/office/students`, `/office/reports`) are independently accessible while sharing authoritative state. Unknown paths route to dedicated 404 page.
 **Status:** Implemented and verified in Sprint-1.

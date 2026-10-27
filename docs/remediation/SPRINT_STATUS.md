@@ -21,8 +21,8 @@
 | Sprint | Title | Status | Completion criteria summary | Blockers | Evidence |
 |:---|:---|:---|:---|:---|:---|
 | Sprint-0 | Baseline, loading states, dead code removal | **DONE** | No hardcoded fallback numbers; loading spinner renders; API errors shown inline; dead files removed; environment verified | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed, 0 failed |
-| Sprint-1 | App shell, navigation, routing | **DONE** | React Router installed; 7 office tabs navigable; student has 3 sections; existing state logic preserved | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed; E2E browser tests pass |
-| Sprint-2 | Data integrity, institution persistence | **NOT STARTED** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | Requires Sprint-1 | — |
+| Sprint-1 | App shell, navigation, routing | **DONE** | React Router installed; 7 office tabs navigable; student has 3 sections; existing state logic preserved | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed; Browser subagent: 7 routes + student + 404 verified |
+| Sprint-2 | Data integrity, institution persistence | **READY** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | Ready to start (Sprint-1 DONE) | — |
 | Sprint-3 | Daily Planning workflow | **NOT STARTED** | Guided 4-step flow; constraint display; allocation review; no conflicting baselines | Requires Sprint-2 | — |
 | Sprint-4 | Dispatch Manifest — real buses, approval guard | **NOT STARTED** | Manifest uses DB buses/drivers; table paginated; dispatch endpoint creates Plan; button disabled without valid manifest | Requires Sprint-3 | — |
 | Sprint-5 | Fleet & Drivers + Students & Demand management | **NOT STARTED** | Fleet CRUD in dedicated page; student demand aggregation | Requires Sprint-1, Sprint-2 | — |
@@ -76,18 +76,18 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 
 ## Sprint-1 Detail
 
-**Objective:** Create an app shell with persistent navigation. Officer can reach 7 destinations; student has 3 sections. Long single-page scroll eliminated.
+**Objective:** Create an app shell with persistent navigation. Officer can reach 7 destinations. Student has 3 clear sections.
 
-**Status:** DONE
+**Prerequisites:** Sprint-0 DONE.
 
 **Acceptance criteria:**
-- [x] `npm run build` and `npm run lint` both clean.
-- [x] 7 office tabs navigable; each renders the correct section.
-- [x] Student view renders 3 sections (My Bus Pass, My Route, Travel Status) clearly.
+- [x] `npm run build` and `npm run lint` both clean (0 errors).
+- [x] 7 office tabs navigable; each renders the correct section (`/office/overview`, `/office/planning`, `/office/routes`, `/office/manifest`, `/office/fleet`, `/office/students`, `/office/reports`).
+- [x] Student view renders 3 sections (My Bus Pass, My Route, Travel Status) clearly with dedicated sub-navigation.
 - [x] Active tab is visually distinct from inactive tabs.
-- [x] Zone filter tabs do not clip on a 1280px viewport.
-- [x] `.pulse` animation has `@keyframes` and `prefers-reduced-motion` guard.
-- [x] No data regression: all sections that loaded data before still load data in their new location.
+- [x] Zone filter tabs do not clip on a 1280px viewport (NAV-004 resolved via `min-w-0` and responsive wrapping).
+- [x] `.pulse` animation has `@keyframes pulse-dot` and `prefers-reduced-motion` guard (M-14 resolved).
+- [x] No data regression: all sections that loaded data before still load data in their new location via `OfficeLayout` shared context.
 - [x] Backend test results unchanged from Sprint-0 baseline (52 passed, 0 failed).
 
 **Verification commands & results:**
@@ -124,6 +124,7 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 - `frontend/src/App.jsx` (BrowserRouter and Routes configuration)
 
 ---
+
 ## Sprint-2 Detail
 
 **Objective:** Make every KPI authoritative. Persist institution registry. Canonicalize campus coordinates.
@@ -165,7 +166,9 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 - Code Scans: 0 matches for `|| 50 / || 2750 / || 2150`; 0 matches for `alert(`.
 
 **Outstanding defects from this sprint:** None.
-**Next task for next session:** Sprint-1 Task 1.1 — Install `react-router-dom` and verify dependencies in `frontend/package.json`. Follow `docs/remediation/SPRINTS/SPRINT-01.md`.---
+**Next task for next session:** Sprint-1 Task 1.1 — Install `react-router-dom` and verify dependencies in `frontend/package.json`. Follow `docs/remediation/SPRINTS/SPRINT-01.md`.
+
+---
 
 ## Handoff Note — Sprint-1 — 2026-10-27
 
@@ -207,7 +210,7 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 **Verification results:**
 - Frontend Lint: `cd frontend; npm run lint` PASSED (0 errors).
 - Frontend Build: `cd frontend; npm run build` PASSED (0 errors, 1.19s).
-- Backend Tests: `py -3.12 -m pytest backend/app/tests/` PASSED (52 passed, 0 failed in 54.69s).
+- Backend Tests: `py -3.12 -m pytest backend/app/tests/` PASSED (52 passed, 0 failed in 56.45s).
 - Browser E2E Test: PASSED (all 7 office routes, tab highlights, modal sheets, student section switcher, 404 page, back/forward history verified).
 - Git Checks: `git diff --check` PASSED (0 whitespace errors).
 
