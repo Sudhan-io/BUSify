@@ -19,7 +19,7 @@ Returns system operational metadata.
 ```json
 {
   "platform": "BUSify Transit Optimization Platform",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "docs_url": "/docs",
   "api_prefix": "/api",
   "status": "OPERATIONAL"
@@ -346,3 +346,62 @@ Real-time student attendance action toggling whether the student is commuting on
 }
 ```
 
+---
+
+## 7. Institutions & Multi-Campus Scalability
+
+### `GET /api/institutions`
+Lists all registered college and university campuses.
+* **Response `200 OK`**: Array of registered institutions.
+
+### `POST /api/institutions`
+Registers a new campus depot. Requires Transport Officer authentication bearer token.
+* **Request Body:**
+```json
+{
+  "name": "Thiagarajar College of Engineering",
+  "short_name": "TCE Madurai",
+  "city": "Madurai",
+  "campus_lat": 9.8826,
+  "campus_lng": 78.0818,
+  "fleet_size": 10,
+  "bus_capacity": 55
+}
+```
+
+### `GET /api/institutions/active`
+Returns the currently active institution anchoring transit planning.
+
+### `POST /api/institutions/active`
+Switches the globally active campus. Requires Transport Officer authentication bearer token.
+
+---
+
+## 8. Dispatch Plan Approval & Workflow Persistence
+
+### `POST /api/workflow/plan/approve`
+Approves and persists the daily dispatch plan atomically to the `plans` table. Requires Transport Officer authentication.
+* **Request Body:**
+```json
+{
+  "date": "2026-10-28",
+  "scenario": "REGULAR"
+}
+```
+* **Response `200 OK`**:
+```json
+{
+  "status": "SUCCESS",
+  "date": "2026-10-28",
+  "scenario": "REGULAR",
+  "total_buses_dispatched": 16,
+  "total_riders_scheduled": 880,
+  "message": "Daily dispatch plan approved and persisted to database."
+}
+```
+
+### `GET /api/workflow/plan/status`
+Checks whether an approved dispatch plan is persisted in the database for the given date and scenario.
+
+### `GET /api/buses/drivers`
+Lists the complete roster of active bus drivers with assigned vehicles and emergency phone contacts.
