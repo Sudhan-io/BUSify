@@ -123,14 +123,26 @@ npm run dev
 
 ## Testing & Verification
 
-Run the full automated test suite (87 unit, integration, and stress tests):
+Run the full automated test suite (122 unit, integration, and stress tests) and frontend checks locally:
 ```bash
-# Execute full backend test suite
-python -m pytest backend/app/tests/ -v
+# Frontend verification (from frontend directory)
+cd frontend
+npm ci
+npm run lint    # OxLint across 105 rules
+npm run build   # Vite production build
 
-# Verify frontend production build
-cd frontend && npm run build
+# Backend verification (from project root)
+python -m pip install -r requirements.txt
+python -m backend.app.core.data.synthetic_generator   # Bootstrap deterministic test data
+python -m pytest backend/app/tests/ -v --tb=short     # Full 122-test regression suite
 ```
+
+### Automated CI Pipeline
+
+A reproducible GitHub Actions CI pipeline (`.github/workflows/ci.yml`) automatically executes on every push to `main` and on pull requests targeting `main`. It tests:
+* **Frontend Job (Node.js 20):** `npm ci`, OxLint (`npm run lint`), and Vite build (`npm run build`).
+* **Backend Job (Python 3.12):** Clean synthetic database bootstrap and full pytest regression suite with non-sensitive isolated test environment variables.
+
 
 ---
 

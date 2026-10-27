@@ -268,6 +268,7 @@ def seed_calendar_and_demand(db, days_back=90, days_forward=14):
 
         current_d += timedelta(days=1)
 
+    db.flush()
     db.bulk_save_objects(demand_entries)
     db.commit()
     return len(calendar_entries), len(demand_entries)

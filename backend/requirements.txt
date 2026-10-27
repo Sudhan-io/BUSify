@@ -40,3 +40,7 @@ scikit-learn==1.5.2           # Preprocessing and feature engineering
 
 # ── Utilities ─────────────────────────────────────────────────
 python-dateutil==2.9.0        # Flexible date parsing
+
+# ── Testing ───────────────────────────────────────────────────
+pytest>=7.4.0
+httpx>=0.24.0
