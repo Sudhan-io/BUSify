@@ -22,7 +22,7 @@
 |:---|:---|:---|:---|:---|:---|
 | Sprint-0 | Baseline, loading states, dead code removal | **DONE** | No hardcoded fallback numbers; loading spinner renders; API errors shown inline; dead files removed; environment verified | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed, 0 failed |
 | Sprint-1 | App shell, navigation, routing | **DONE** | React Router installed; 7 office tabs navigable; student has 3 sections; existing state logic preserved | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed; Browser subagent: 7 routes + student + 404 verified |
-| Sprint-2 | Data integrity, institution persistence | **IN PROGRESS** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | None | Tasks 2.1, 2.4, 2.5 complete: SEC-001, M-02, DATA-002, DATA-003 verified; 75 tests passed |
+| Sprint-2 | Data integrity, institution persistence | **IN PROGRESS** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | None | Tasks 2.1, 2.4, 2.5, 2.6 complete: SEC-001, M-02, DATA-002, DATA-003, DATA-004 verified; 83 tests passed |
 | Sprint-3 | Daily Planning workflow | **NOT STARTED** | Guided 4-step flow; constraint display; allocation review; no conflicting baselines | Requires Sprint-2 | — |
 | Sprint-4 | Dispatch Manifest — real buses, approval guard | **NOT STARTED** | Manifest uses DB buses/drivers; table paginated; dispatch endpoint creates Plan; button disabled without valid manifest | Requires Sprint-3 | — |
 | Sprint-5 | Fleet & Drivers + Students & Demand management | **NOT STARTED** | Fleet CRUD in dedicated page; student demand aggregation | Requires Sprint-1, Sprint-2 | — |
@@ -129,15 +129,15 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 
 **Objective:** Make every KPI authoritative. Persist institution registry. Canonicalize campus coordinates.
 
-**Status:** IN PROGRESS (Tasks 2.1, 2.4, 2.5 Complete; Tasks 2.6-2.7 Pending)
+**Status:** IN PROGRESS (Tasks 2.1, 2.4, 2.5, 2.6 Complete; Task 2.7 Pending)
 
 **Key tasks:**
 1. [x] Persist `INSTITUTIONS_REGISTRY` to a DB table (SEC-001 / C-04) — *Task 2.1 complete*.
 2. [x] Canonical campus coordinates: extract to a single constant consumed by all components (M-02) — *Task 2.1 complete*.
 3. [x] `total_seats_deployed`: use `sum(bus.seats for active buses)` not `len(manifest) * DEFAULT_BUS_CAPACITY` (DATA-002) — *Task 2.4 complete*.
 4. [x] Define seating equity metric explicitly; compute per-area utilization variance; expose it from the API (DATA-003) — *Task 2.5 complete*.
-5. [ ] Disaggregator zero-division guard (DATA-004 / H-11) — *Next: Task 2.6*.
-6. [ ] Demand/capacity bar chart: render loading and empty states; verify `forecastData` shape matches bar keys (M-15) — *Task 2.7*.
+5. [x] Disaggregator zero-division guard (DATA-004 / H-11) — *Task 2.6 complete*.
+6. [ ] Demand/capacity bar chart: render loading and empty states; verify `forecastData` shape matches bar keys (M-15) — *Next: Task 2.7*.
 
 ---
 
@@ -306,3 +306,28 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 
 **Outstanding defects from this task:** None.
 **Next task for next session:** Sprint-2 Task 2.6 — Disaggregator zero-division guard in `disaggregator.py:108` (DATA-004 / H-11). Follow `docs/remediation/SPRINTS/SPRINT-02.md`.
+
+---
+
+## Handoff Note — Sprint-2 Task 2.6 — 2026-10-27
+
+**Completed tasks:**
+- **Task 2.6 (DATA-004 / H-11):** Corrected zero-division and empty-area failure modes in `backend/app/core/forecasting/disaggregator.py`. In `get_stop_weights_for_area()`, safely returned empty list for empty dataframes and applied equal weighting (`1.0 / len(df)`) when total area registrations equal 0, avoiding `ZeroDivisionError`. In `disaggregate_area_demand()`, guarded against empty stop collections by raising `HTTPException(status_code=422, detail=f"Area {area_id} has no stops. Cannot disaggregate demand.")` and guarded against negative demand values.
+- **Routing API Integration:** Verified that `GET /api/routes?area_id=...` returns HTTP 422 with a descriptive error when queried for an area with no stop records in the database.
+- **Testing:** Added 8 focused unit and API tests in `backend/app/tests/test_sprint2_disaggregator.py` covering normal demand disaggregation, empty areas (422), zero demand conservation, zero-registration fallback, multi-area isolation, negative demand validation (422), deterministic output, and HTTP endpoint contract compliance.
+
+**Modified files:**
+- `backend/app/core/forecasting/disaggregator.py` (Zero-division guard and empty stop validation)
+- `backend/app/tests/test_sprint2_disaggregator.py` (New 8 focused tests)
+- `docs/remediation/DEFECT_REGISTER.md` (DATA-004 moved to DONE)
+- `docs/remediation/SPRINTS/SPRINT-02.md` (Task 2.6 marked COMPLETED)
+- `docs/remediation/SPRINT_STATUS.md` (Task 2.6 updated)
+
+**Verification results:**
+- Focused Tests: `py -3.12 -m pytest backend/app/tests/test_sprint2_disaggregator.py -v` PASSED (8 passed in 1.74s).
+- Full Regression Suite: `py -3.12 -m pytest backend/app/tests/ -v --tb=short` PASSED (83 passed, 0 failed in 134.45s).
+- Frontend Lint: `npm run lint` PASSED (0 errors, 13 pre-existing warnings).
+- Code Hygiene: `git diff --check` PASSED.
+
+**Outstanding defects from this task:** None.
+**Next task for next session:** Sprint-2 Task 2.7 — Fix demand/capacity bar chart empty and loading state in `DailyPlanning.jsx` (M-15). Follow `docs/remediation/SPRINTS/SPRINT-02.md`.

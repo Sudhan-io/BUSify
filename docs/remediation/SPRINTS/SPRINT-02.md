@@ -122,7 +122,7 @@ In `OfficeDashboard`'s Overview component, replace `"100% seating equity achieve
 
 ---
 
-### Task 2.6 — Disaggregator zero-division guard (DATA-004)
+### Task 2.6 — Disaggregator zero-division guard (DATA-004) `[COMPLETED]`
 
 In `backend/app/core/forecasting/disaggregator.py`:
 - At the top of `disaggregate_area_demand()`, check if the area has any stops.
@@ -158,9 +158,9 @@ Add: if `loading`, render a skeleton. If `!loading && comparisonChartData.length
 - [x] `seating_equity_pct` field present in manifest response.
 - [x] Campus coordinates: all map components use `activeInstitution` props, not hardcoded literals.
 - [ ] Demand/capacity chart shows loading skeleton and empty state.
-- [ ] Disaggregator raises 422 when area has no stops.
+- [x] Disaggregator raises 422 when area has no stops.
 - [x] `npm run build` and `npm run lint` clean.
-- [x] No backend tests regressed (75 passed).
+- [x] No backend tests regressed (83 passed).
 
 ---
 
