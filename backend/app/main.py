@@ -5,9 +5,15 @@ from backend.app.api import api_router
 from backend.app.auth.routes_auth import router as auth_router
 from backend.app.database import engine, Base
 
-# Ensure all tables are created on startup (incl. student_attendance)
+# Ensure all tables are created on startup (incl. student_attendance and institutions)
 import backend.app.models  # noqa: F401 — registers all models with Base.metadata
 Base.metadata.create_all(bind=engine)
+
+# Idempotently ensure default institution exists
+from backend.app.database import SessionLocal
+from backend.app.models.institution import seed_default_institutions
+with SessionLocal() as _init_db:
+    seed_default_institutions(_init_db)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

@@ -21,9 +21,10 @@ import {
   ArrowRight
 } from 'lucide-react';
 import L from 'leaflet';
+import { CANONICAL_CAMPUS_COORDINATES } from '../constants/institution';
 
-// Center on College Campus Depot (VSB Engineering College, Karudayampalayam, Karur)
-const DEFAULT_COLLEGE_CENTER = [10.95488, 77.95462];
+// Center on College Campus Depot (canonical coordinates M-02)
+const DEFAULT_COLLEGE_CENTER = [CANONICAL_CAMPUS_COORDINATES.lat, CANONICAL_CAMPUS_COORDINATES.lng];
 
 const escapeHtml = (val) => {
   return String(val ?? '')

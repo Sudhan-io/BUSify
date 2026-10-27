@@ -22,7 +22,7 @@
 |:---|:---|:---|:---|:---|:---|
 | Sprint-0 | Baseline, loading states, dead code removal | **DONE** | No hardcoded fallback numbers; loading spinner renders; API errors shown inline; dead files removed; environment verified | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed, 0 failed |
 | Sprint-1 | App shell, navigation, routing | **DONE** | React Router installed; 7 office tabs navigable; student has 3 sections; existing state logic preserved | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed; Browser subagent: 7 routes + student + 404 verified |
-| Sprint-2 | Data integrity, institution persistence | **READY** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | Ready to start (Sprint-1 DONE) | — |
+| Sprint-2 | Data integrity, institution persistence | **IN PROGRESS** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | None | Task 2.1 complete: SEC-001 & M-02 verified; 58 tests passed, build/lint clean |
 | Sprint-3 | Daily Planning workflow | **NOT STARTED** | Guided 4-step flow; constraint display; allocation review; no conflicting baselines | Requires Sprint-2 | — |
 | Sprint-4 | Dispatch Manifest — real buses, approval guard | **NOT STARTED** | Manifest uses DB buses/drivers; table paginated; dispatch endpoint creates Plan; button disabled without valid manifest | Requires Sprint-3 | — |
 | Sprint-5 | Fleet & Drivers + Students & Demand management | **NOT STARTED** | Fleet CRUD in dedicated page; student demand aggregation | Requires Sprint-1, Sprint-2 | — |
@@ -129,13 +129,15 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 
 **Objective:** Make every KPI authoritative. Persist institution registry. Canonicalize campus coordinates.
 
+**Status:** IN PROGRESS (Task 2.1 Complete; Tasks 2.4-2.7 Pending)
+
 **Key tasks:**
-1. Persist `INSTITUTIONS_REGISTRY` to a DB table (SEC-001 / C-04).
-2. Canonical campus coordinates: extract to a single constant consumed by all components (M-02).
-3. `total_seats_deployed`: use `sum(bus.seats for active buses)` not `len(manifest) * DEFAULT_BUS_CAPACITY` (DATA-002).
-4. Define seating equity metric explicitly; compute per-area utilization variance; expose it from the API (DATA-003).
-5. Demand/capacity bar chart: render loading and empty states; verify `forecastData` shape matches bar keys.
-6. Disaggregator zero-division guard (DATA-004 / H-11).
+1. [x] Persist `INSTITUTIONS_REGISTRY` to a DB table (SEC-001 / C-04) — *Task 2.1 complete*.
+2. [x] Canonical campus coordinates: extract to a single constant consumed by all components (M-02) — *Task 2.1 complete*.
+3. [ ] `total_seats_deployed`: use `sum(bus.seats for active buses)` not `len(manifest) * DEFAULT_BUS_CAPACITY` (DATA-002) — *Next: Task 2.4*.
+4. [ ] Define seating equity metric explicitly; compute per-area utilization variance; expose it from the API (DATA-003) — *Task 2.5*.
+5. [ ] Disaggregator zero-division guard (DATA-004 / H-11) — *Task 2.6*.
+6. [ ] Demand/capacity bar chart: render loading and empty states; verify `forecastData` shape matches bar keys (M-15) — *Task 2.7*.
 
 ---
 
@@ -216,3 +218,36 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 
 **Outstanding defects from this sprint:** None.
 **Next task for next session:** Sprint-2 Task 2.1 — Persist `INSTITUTIONS_REGISTRY` to a DB table (SEC-001) and canonicalize campus coordinates (M-02). Follow `docs/remediation/SPRINTS/SPRINT-02.md`.
+
+---
+
+## Handoff Note — Sprint-2 Task 2.1 — 2026-10-27
+
+**Completed tasks:**
+- **Task 2.1 (SEC-001):** Implemented `Institution` SQLAlchemy model in `backend/app/models/institution.py` with `institutions` table and idempotent startup seeding in `main.py`. Replaced in-memory `INSTITUTIONS_REGISTRY` in `routes_institution.py` with transactional DB operations across all endpoints (`GET /institutions`, `GET /institutions/active`, `POST /institutions`, `POST /institutions/active`, `GET /institutions/districts`). Added coordinate range validation (`-90 <= lat <= 90`, `-180 <= lng <= 180`).
+- **Task 2.1 (M-02):** Canonicalized campus coordinates to `(10.95488, 77.95462)` (VSB Engineering College, Karur). Created single source of truth in `frontend/src/constants/institution.js`. Removed divergent literal `10.95485, 77.95463` from `RoutesAndMap.jsx`, `OfficeDashboard.jsx`, and `StudentView.jsx`. Updated `LeafletMap.jsx` default center and `App.jsx` default institution.
+- **Testing:** Created `backend/app/tests/test_sprint2_institution_persistence.py` covering persistence across separate DB sessions, seeder idempotency, active switching, canonical coordinates, and validation.
+
+**Modified files:**
+- `backend/app/models/institution.py` (New model & seed helper)
+- `backend/app/models/__init__.py` (Model registration)
+- `backend/app/main.py` (Startup seeder)
+- `backend/app/api/routes_institution.py` (DB-backed endpoints)
+- `backend/app/tests/test_sprint2_institution_persistence.py` (New 6 focused tests)
+- `frontend/src/constants/institution.js` (New canonical coordinates & default institution)
+- `frontend/src/App.jsx`
+- `frontend/src/components/LeafletMap.jsx`
+- `frontend/src/pages/office/RoutesAndMap.jsx`
+- `frontend/src/views/OfficeDashboard.jsx`
+- `frontend/src/views/StudentView.jsx`
+- Docs: `docs/remediation/SPRINT_STATUS.md`, `docs/remediation/DEFECT_REGISTER.md`, `docs/remediation/DECISIONS.md`, `docs/remediation/SPRINTS/SPRINT-02.md`
+
+**Verification results:**
+- Focused Tests: `py -3.12 -m pytest backend/app/tests/test_sprint2_institution_persistence.py backend/app/tests/test_sprint8_institution_and_roads.py` PASSED (11 passed, 0 failed in 0.82s).
+- Full Regression: `py -3.12 -m pytest backend/app/tests/` PASSED (58 passed, 0 failed in 51.62s).
+- Frontend Lint: `npm run lint` PASSED (0 errors).
+- Frontend Build: `npm run build` PASSED (0 errors in 1.30s).
+- Coordinate audit: 0 conflicting `10.95485` or `77.95463` literals remain in repository.
+
+**Outstanding defects from this task:** None.
+**Next task for next session:** Sprint-2 Task 2.4 — Fix `total_seats_deployed` in `routes_workflow.py:120` to use `sum(b.seats for b in active_buses)` (DATA-002).

@@ -3,6 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import LeafletMap from '../../components/LeafletMap';
 import { Navigation, Route as RouteIcon } from 'lucide-react';
 import usePageTitle from '../../hooks/usePageTitle';
+import { CANONICAL_CAMPUS_COORDINATES } from '../../constants/institution';
 
 const ZONES = [
   { id: 'AREA_A', name: 'Zone A', corridor: 'Karudayampalayam & Kovai Rd' },
@@ -91,7 +92,7 @@ export default function RoutesAndMap() {
           <LeafletMap
             stops={currentZoneStops}
             activeRoutes={activeRoutes}
-            campusCenter={[activeInstitution?.campus_lat || 10.95485, activeInstitution?.campus_lng || 77.95463]}
+            campusCenter={[activeInstitution?.campus_lat ?? CANONICAL_CAMPUS_COORDINATES.lat, activeInstitution?.campus_lng ?? CANONICAL_CAMPUS_COORDINATES.lng]}
             campusName={activeInstitution?.name || 'VSB Engineering College Transit Hub'}
             activeInstitution={activeInstitution}
             onSelectInstitution={onSelectInstitution}

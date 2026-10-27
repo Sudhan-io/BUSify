@@ -5,5 +5,16 @@ from backend.app.models.calendar import Calendar
 from backend.app.models.demand import DemandObservation
 from backend.app.models.plan import Plan
 from backend.app.models.student_attendance import StudentAttendance
+from backend.app.models.institution import Institution, seed_default_institutions
 
-__all__ = ["Stop", "Bus", "Registration", "Calendar", "DemandObservation", "Plan", "StudentAttendance"]
+__all__ = [
+    "Stop",
+    "Bus",
+    "Registration",
+    "Calendar",
+    "DemandObservation",
+    "Plan",
+    "StudentAttendance",
+    "Institution",
+    "seed_default_institutions",
+]

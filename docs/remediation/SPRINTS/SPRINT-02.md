@@ -1,8 +1,8 @@
 # Sprint-2 — Data Integrity, Institution Persistence, Metric Canonicalization
 
-**Status:** NOT STARTED  
-**Prerequisite:** Sprint-1 DONE (navigation shell exists).  
-**Objective:** Every KPI card traces to a single authoritative source. Institutions persist in the database. Campus coordinates have one canonical value. Chart renders data.  
+**Status:** IN PROGRESS (Task 2.1 complete; Tasks 2.4-2.7 pending)<br>
+**Prerequisite:** Sprint-1 DONE (navigation shell exists).<br>
+**Objective:** Every KPI card traces to a single authoritative source. Institutions persist in the database. Campus coordinates have one canonical value. Chart renders data.<br>
 **User-visible outcome:** KPI cards show real numbers from the database, not computed-from-defaults or conflicting values.
 
 ---
@@ -35,7 +35,7 @@ Key defects: SEC-001, DATA-001 (residual), DATA-002, DATA-003, DATA-004, M-02, M
 
 ## Ordered Implementation Tasks
 
-### Task 2.1 — Create `institutions` DB table and migration
+### Task 2.1 — Create `institutions` DB table and migration `[COMPLETED]`
 
 Create `backend/app/models/institution.py`:
 ```python
@@ -60,7 +60,7 @@ Register the model in `backend/app/models/__init__.py`. `Base.metadata.create_al
 
 ---
 
-### Task 2.2 — Migrate `routes_institution.py` to use the DB
+### Task 2.2 — Migrate `routes_institution.py` to use the DB `[COMPLETED]`
 
 Replace the in-memory `INSTITUTIONS_REGISTRY` list with DB queries.  
 `GET /institutions` → `db.query(Institution).all()`.  
@@ -74,7 +74,7 @@ Seed the existing VSB institution record on first startup (check if table is emp
 
 ---
 
-### Task 2.3 — Canonical campus coordinates
+### Task 2.3 — Canonical campus coordinates `[COMPLETED]`
 
 Extract campus coordinates to one shared location. Options:
 - `settings.COLLEGE_DEPOT_LAT` / `settings.COLLEGE_DEPOT_LON` already exist in `config.py`.
@@ -153,14 +153,14 @@ Add: if `loading`, render a skeleton. If `!loading && comparisonChartData.length
 
 ## Acceptance Criteria
 
-- [ ] Institution list persists through backend restart.
+- [x] Institution list persists through backend restart.
 - [ ] `total_seats_deployed` equals actual sum of active bus seats.
 - [ ] `seating_equity_pct` field present in manifest response.
-- [ ] Campus coordinates: all map components use `activeInstitution` props, not hardcoded literals.
+- [x] Campus coordinates: all map components use `activeInstitution` props, not hardcoded literals.
 - [ ] Demand/capacity chart shows loading skeleton and empty state.
 - [ ] Disaggregator raises 422 when area has no stops.
-- [ ] `npm run build` and `npm run lint` clean.
-- [ ] No backend tests regressed.
+- [x] `npm run build` and `npm run lint` clean.
+- [x] No backend tests regressed (58 passed).
 
 ---
 

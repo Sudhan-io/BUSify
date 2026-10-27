@@ -103,3 +103,17 @@
 **Rationale:** Preserves zero-regression data synchronization across routes without duplicate network fetches or losing in-flight state (e.g. selected timetable scenario, uploaded spreadsheet benchmark, editing bus modal). Enables deep-linking, direct URL navigation, back/forward history, and dynamic `<title>` tags.
 **Consequence:** Office destinations (`/office/overview`, `/office/planning`, `/office/routes`, `/office/manifest`, `/office/fleet`, `/office/students`, `/office/reports`) are independently accessible while sharing authoritative state. Unknown paths route to dedicated 404 page.
 **Status:** Implemented and verified in Sprint-1.
+
+---
+
+## ADR-011 — Institution Database Persistence and Campus Coordinate Canonicalization
+
+**Date:** 2026-10-27 (Sprint-2, Task 2.1)
+**Decision:** Persist institution registries into an `institutions` table using SQLAlchemy ORM `Institution` model. Replace in-memory `INSTITUTIONS_REGISTRY` in `routes_institution.py` with transactional DB operations. Canonicalize campus coordinates across backend and frontend to `(10.95488, 77.95462)` (VSB Engineering College, Karur).
+**Rationale:** Resolves SEC-001 (multi-worker Gunicorn state divergence and restart data loss) and M-02 (conflicting coordinate literals `10.95488, 77.95462` vs `10.95485, 77.95463`).
+**Consequence:**
+- `Institution` table stores institution records with `is_active` boolean and dynamic JSON `corridors`.
+- Idempotent `seed_default_institutions(db)` runs on FastAPI startup, ensuring `VSB_KARUR` is populated without duplicates.
+- Frontend components (`LeafletMap`, `RoutesAndMap`, `OfficeDashboard`, `StudentView`, `App`) reference canonical `CANONICAL_CAMPUS_COORDINATES` and `DEFAULT_INSTITUTION` from `frontend/src/constants/institution.js`.
+- Coordinate validation enforces `-90 <= lat <= 90` and `-180 <= lng <= 180` at API boundary.
+**Status:** Implemented and verified in Sprint-2 Task 2.1.

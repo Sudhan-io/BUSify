@@ -42,7 +42,6 @@
 | **DATA-003** | Seating equity is undefined — UI shows "100% equity" when `total_standing == 0` without any equity calculation | Confirmed | `OfficeDashboard.jsx:351` | Misleading claim — equity is not the same as zero standing | Define equity metric explicitly (e.g., Gini coefficient of utilization across areas); compute and display it | Sprint-2 |
 | **DISPATCH-001** | "Approve & Dispatch" button has no server-side guard — `handleBroadcast` is client-only | Confirmed | `OfficeDashboard.jsx:110-113`, `routes_workflow.py` (no dispatch endpoint) | Empty or stale manifest can be "dispatched" with no backend validation | Add `POST /api/workflow/dispatch` that validates manifest, creates a `Plan` record, and returns a dispatch ID | Sprint-4 |
 | **DISPATCH-002** | `Plan` model has no reader or writer — approved manifests are discarded immediately | Confirmed | `models/plan.py`, zero callers | No audit trail for approved trips | Implement dispatch persistence via `Plan` model | Sprint-4 |
-| **SEC-001** | `INSTITUTIONS_REGISTRY` is process-global mutable state — multi-worker Gunicorn disagrees | Confirmed | `routes_institution.py:28` | Campus registration mutates one worker; other workers return stale data | Persist institutions to DB table | Sprint-2 |
 | **SEC-002** | Student authentication absent — `/student-profile` and `/student-opt-out` rely on a 4-entry demo roster only | Confirmed | `routes_workflow.py:60` (DEMO_STUDENT_ROSTER) | Any caller who knows a valid roll number can read that student's pass | Requires per-student credentials or opaque token; demo roster is a mitigation only | Sprint-7 (post-demo) |
 | **SEC-003** | `POST /simulate` is ungated, synchronous, runs up to 300 CP-SAT solves on the event loop | Confirmed | `routes_simulation.py:7` | Any caller can saturate the server CPU | Rate-limit or run async; add auth for resource protection | Sprint-8 |
 
@@ -73,7 +72,6 @@
 | ID | Title | Confidence | Affected files | Sprint |
 |:---|:---|:---|:---|:---|
 | **M-01** | Zone metadata contradicts itself in `LeafletMap.jsx:69-105` vs `:946-958` | Confirmed | `LeafletMap.jsx` | Sprint-6 |
-| **M-02** | Campus coordinates duplicated 5x with two different values | Confirmed | `App.jsx:17`, `OfficeDashboard.jsx:547`, `StudentView.jsx:271`, `LeafletMap.jsx:26` | Sprint-2 |
 | **M-03** | "Optimized" CSV benchmark is a greedy sort with assumed detour factors, not CVRP | Confirmed | `routes_workflow.py:489-531` | Sprint-3 |
 | **M-04** | CO₂/fuel constants uncited, formula undocumented | Confirmed | `routes_workflow.py:553-554` | Sprint-3 |
 | **M-05** | `backend/Dockerfile` DB path mismatch | Confirmed | `backend/Dockerfile` | Sprint-8 |
@@ -130,3 +128,5 @@ See `docs/OUTSTANDING_ISSUES.md` §2 for full descriptions and verification evid
 | NAV-001 | Extracted monolithic office view into 7 distinct route components (`OfficeOverview`, `DailyPlanning`, `RoutesAndMap`, `DispatchManifest`, `FleetAndDrivers`, `StudentsAndDemand`, `ReportsAndHistory`) with `react-router-dom@^7.18.4`, `OfficeLayout`, persistent sub-nav bar, dynamic titles, and 404 handler | Verified in Sprint-1; browser subagent E2E pass |
 | NAV-004 | Zone-filter tabs in `RoutesAndMap.jsx` fixed for horizontal overflow with `min-w-0` and safe responsive wrapping | Verified in Sprint-1; no clipping at 1280px in browser subagent |
 | M-14 | Added `@keyframes pulse-dot` and `@media (prefers-reduced-motion: reduce)` to `.pulse` class in `frontend/src/index.css` | Verified in Sprint-1; CSS build succeeds |
+| SEC-001 (C-04) | `Institution` ORM model persisted to `institutions` DB table, idempotent startup seed, active campus switching, process-global in-memory registry eliminated | Verified in Sprint-2 Task 2.1; 6 unit tests passing across DB sessions + regression suite |
+| M-02 | Campus coordinates canonicalized to `(10.95488, 77.95462)` in `backend.app.core.config.settings` and `frontend/src/constants/institution.js`; divergent `(10.95485, 77.95463)` removed | Verified in Sprint-2 Task 2.1; 0 conflicting coordinate matches in repo, tests passing |

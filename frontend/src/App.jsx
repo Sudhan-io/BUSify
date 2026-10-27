@@ -20,21 +20,7 @@ import {
   clearSession,
 } from './services/auth';
 import LoginModal from './components/LoginModal';
-
-const DEFAULT_INSTITUTION = {
-  id: 'VSB_KARUR',
-  name: 'VSB Engineering College',
-  campus_code: 'VSBEC',
-  short_name: 'VSB Karur',
-  city: 'Karudayampalayam, Karur',
-  district: 'Karur',
-  campus_lat: 10.95488,
-  campus_lng: 77.95462,
-  total_fleet_size: 45,
-  fleet_size: 45,
-  default_capacity: 55,
-  bus_capacity: 55,
-};
+import { DEFAULT_INSTITUTION } from './constants/institution';
 
 /**
  * Single source of truth for backend status -> colour.

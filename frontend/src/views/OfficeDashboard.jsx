@@ -8,6 +8,7 @@ import { Bus, Users, Check, RefreshCw, Play, ShieldCheck, Printer, FileText, Sen
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import api from '../services/api';
 import { describeError } from '../services/auth';
+import { CANONICAL_CAMPUS_COORDINATES } from '../constants/institution';
 
 const SCENARIOS = [
   { id: 'REGULAR', label: 'Regular Academic Day', desc: 'Standard curriculum and lab operations' },
@@ -605,7 +606,7 @@ export default function OfficeDashboard({
             <LeafletMap
               stops={stopsList.filter(s => s.area_id === selectedArea)}
               activeRoutes={routeData?.routes || []}
-              campusCenter={[activeInstitution?.campus_lat || 10.95485, activeInstitution?.campus_lng || 77.95463]}
+              campusCenter={[activeInstitution?.campus_lat ?? CANONICAL_CAMPUS_COORDINATES.lat, activeInstitution?.campus_lng ?? CANONICAL_CAMPUS_COORDINATES.lng]}
               campusName={activeInstitution?.name || 'VSB Engineering College Transit Hub'}
               activeInstitution={activeInstitution}
               onSelectInstitution={onSelectInstitution}

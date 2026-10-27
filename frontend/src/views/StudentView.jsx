@@ -5,6 +5,7 @@ import { Bus, MapPin, Clock, Check, ShieldCheck, Phone, RefreshCw } from 'lucide
 import api from '../services/api';
 import { describeError } from '../services/auth';
 import usePageTitle from '../hooks/usePageTitle';
+import { CANONICAL_CAMPUS_COORDINATES } from '../constants/institution';
 
 const SAMPLE_STUDENTS_FALLBACK = [
   { roll_no: '21CS104', name: 'K. Vignesh', department: 'CSE - Final Year' },
@@ -385,7 +386,7 @@ export default function StudentView({ selectedDate, activeInstitution, onSelectI
                 stops={stops.filter(s => s.area_id === assignedStop?.area_id)}
                 activeRoutes={routeInfo?.routes || []}
                 selectedStop={assignedStop}
-                campusCenter={[activeInstitution?.campus_lat || 10.95485, activeInstitution?.campus_lng || 77.95463]}
+                campusCenter={[activeInstitution?.campus_lat ?? CANONICAL_CAMPUS_COORDINATES.lat, activeInstitution?.campus_lng ?? CANONICAL_CAMPUS_COORDINATES.lng]}
                 campusName={activeInstitution?.name || 'VSB Engineering College Transit Hub'}
                 activeInstitution={activeInstitution}
                 onSelectInstitution={onSelectInstitution}
