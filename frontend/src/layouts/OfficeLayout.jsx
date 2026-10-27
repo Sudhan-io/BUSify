@@ -359,6 +359,18 @@ export default function OfficeLayout({
     comparisonChartData,
   };
 
+  useEffect(() => {
+    if (!showCsvModal) return;
+    const handleCsvModalKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowCsvModal(false);
+        setUploadError(null);
+      }
+    };
+    window.addEventListener('keydown', handleCsvModalKeyDown);
+    return () => window.removeEventListener('keydown', handleCsvModalKeyDown);
+  }, [showCsvModal, setShowCsvModal, setUploadError]);
+
   return (
     <div className="space-y-6">
       {/* Persistent Office Sub-Navigation Bar */}
@@ -395,17 +407,19 @@ export default function OfficeLayout({
       {/* Suggestion 1 & 2: CSV Upload & Comparative Benchmark Modal */}
       {showCsvModal && (
         <div className="fixed inset-0 bg-[#18201d]/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] overflow-y-auto">
-          <div className="bg-white rounded-[12px] border border-[#18201d] max-w-4xl w-full p-6 shadow-2xl space-y-5 my-8 max-h-[92vh] overflow-y-auto animate-fade-in">
+          <div role="dialog" aria-modal="true" aria-labelledby="csv-modal-title" className="bg-white rounded-[12px] border border-[#18201d] max-w-4xl w-full p-6 shadow-2xl space-y-5 my-8 max-h-[92vh] overflow-y-auto animate-fade-in">
             {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-[#edf1ed] pb-3">
               <div>
                 <p className="kicker" style={{ margin: 0 }}>ADMIN EXCEL / CSV DATA INGESTION</p>
-                <h3 className="card-title text-lg font-bold">Import Stops, Boarding Demands & Route Assignments</h3>
+                <h3 id="csv-modal-title" className="card-title text-lg font-bold">Import Stops, Boarding Demands & Route Assignments</h3>
                 <p className="text-xs text-[#69716d]">
                   Upload your college transit spreadsheets directly into {activeInstitution?.name || 'VSB Engineering College'}'s AI routing engine.
                 </p>
               </div>
               <button
+                type="button"
+                aria-label="Close modal"
                 onClick={() => { setShowCsvModal(false); setUploadError(null); }}
                 className="text-[#69716d] hover:text-[#18201d] p-1"
               >

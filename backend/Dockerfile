@@ -16,7 +16,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application source
 COPY backend/ ./backend/
-# Bootstrap database deterministically without tracking binary database files in git
+# Bootstrap database deterministically into persistent /app/data path to match docker-compose volume
+RUN mkdir -p /app/data
+ENV DATABASE_URL="sqlite:////app/data/busify.db"
 RUN python -m backend.app.core.data.synthetic_generator
 
 # Expose backend port

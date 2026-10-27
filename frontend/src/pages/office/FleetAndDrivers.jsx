@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
   Plus,
@@ -48,6 +48,17 @@ export default function FleetAndDrivers() {
       (bus.route_name && bus.route_name.toLowerCase().includes(q));
     return matchesZone && matchesSearch;
   });
+
+  useEffect(() => {
+    if (!showBusModal) return;
+    const handleBusModalKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowBusModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleBusModalKeyDown);
+    return () => window.removeEventListener('keydown', handleBusModalKeyDown);
+  }, [showBusModal, setShowBusModal]);
 
   return (
     <div className="space-y-6">
@@ -212,11 +223,11 @@ export default function FleetAndDrivers() {
       {/* Add / Edit Bus Modal */}
       {showBusModal && (
         <div className="fixed inset-0 bg-[#18201d]/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] overflow-y-auto">
-          <div className="bg-white rounded-[12px] border border-[#18201d] max-w-xl w-full p-6 shadow-2xl space-y-4 my-8 animate-fade-in">
+          <div role="dialog" aria-modal="true" aria-labelledby="bus-modal-title" className="bg-white rounded-[12px] border border-[#18201d] max-w-xl w-full p-6 shadow-2xl space-y-4 my-8 animate-fade-in">
             <div className="flex items-start justify-between border-b border-[#edf1ed] pb-3">
               <div>
                 <p className="kicker" style={{ margin: 0 }}>FLEET SPECIFICATION</p>
-                <h3 className="card-title text-base font-bold">
+                <h3 id="bus-modal-title" className="card-title text-base font-bold">
                   {editingBus ? `Edit Specifications: ${editingBus.bus_id}` : 'Register New Bus into College Fleet'}
                 </h3>
                 <p className="text-xs text-[#69716d]">
@@ -224,6 +235,8 @@ export default function FleetAndDrivers() {
                 </p>
               </div>
               <button
+                type="button"
+                aria-label="Close modal"
                 onClick={() => setShowBusModal(false)}
                 className="text-[#69716d] hover:text-[#18201d] p-1"
               >
@@ -239,8 +252,9 @@ export default function FleetAndDrivers() {
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold text-[#18201d] block mb-1">Bus Code / ID *</label>
+                  <label htmlFor="bus-code-input" className="font-semibold text-[#18201d] block mb-1">Bus Code / ID *</label>
                   <input
+                    id="bus-code-input"
                     type="text"
                     required
                     disabled={!!editingBus}
@@ -251,8 +265,9 @@ export default function FleetAndDrivers() {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-[#18201d] block mb-1">Vehicle Registration Number</label>
+                  <label htmlFor="bus-reg-input" className="font-semibold text-[#18201d] block mb-1">Vehicle Registration Number</label>
                   <input
+                    id="bus-reg-input"
                     type="text"
                     value={busFormData.registration_no}
                     onChange={(e) => setBusFormData({ ...busFormData, registration_no: e.target.value })}
@@ -264,8 +279,9 @@ export default function FleetAndDrivers() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold text-[#18201d] block mb-1">Seating Capacity (Seats) *</label>
+                  <label htmlFor="bus-seats-input" className="font-semibold text-[#18201d] block mb-1">Seating Capacity (Seats) *</label>
                   <input
+                    id="bus-seats-input"
                     type="number"
                     required
                     min={15}
@@ -276,8 +292,9 @@ export default function FleetAndDrivers() {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-[#18201d] block mb-1">Default Transit Corridor</label>
+                  <label htmlFor="bus-corridor-select" className="font-semibold text-[#18201d] block mb-1">Default Transit Corridor</label>
                   <select
+                    id="bus-corridor-select"
                     value={busFormData.default_area_id}
                     onChange={(e) => setBusFormData({ ...busFormData, default_area_id: e.target.value })}
                     className="w-full px-3 py-2 rounded border border-[#dfe5df] bg-white text-xs focus:border-[#18201d] outline-none"
@@ -293,8 +310,9 @@ export default function FleetAndDrivers() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-semibold text-[#18201d] block mb-1">Assigned Driver Name *</label>
+                  <label htmlFor="bus-driver-name-input" className="font-semibold text-[#18201d] block mb-1">Assigned Driver Name *</label>
                   <input
+                    id="bus-driver-name-input"
                     type="text"
                     required
                     value={busFormData.driver_name}
@@ -304,8 +322,9 @@ export default function FleetAndDrivers() {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-[#18201d] block mb-1">Driver Phone Number *</label>
+                  <label htmlFor="bus-driver-phone-input" className="font-semibold text-[#18201d] block mb-1">Driver Phone Number *</label>
                   <input
+                    id="bus-driver-phone-input"
                     type="text"
                     required
                     value={busFormData.driver_phone}
@@ -317,8 +336,9 @@ export default function FleetAndDrivers() {
               </div>
 
               <div>
-                <label className="font-semibold text-[#18201d] block mb-1">Route Name / Description</label>
+                <label htmlFor="bus-route-name-input" className="font-semibold text-[#18201d] block mb-1">Route Name / Description</label>
                 <input
+                  id="bus-route-name-input"
                   type="text"
                   value={busFormData.route_name}
                   onChange={(e) => setBusFormData({ ...busFormData, route_name: e.target.value })}
@@ -328,8 +348,9 @@ export default function FleetAndDrivers() {
               </div>
 
               <div>
-                <label className="font-semibold text-[#18201d] block mb-1">Depot / Parking Station</label>
+                <label htmlFor="bus-depot-input" className="font-semibold text-[#18201d] block mb-1">Depot / Parking Station</label>
                 <input
+                  id="bus-depot-input"
                   type="text"
                   value={busFormData.depot_location}
                   onChange={(e) => setBusFormData({ ...busFormData, depot_location: e.target.value })}

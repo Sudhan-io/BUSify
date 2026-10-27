@@ -7,8 +7,10 @@ RUN npm ci --frozen-lockfile
 
 COPY . .
 # Build arguments for injecting backend API URL at build time
-ARG VITE_API_BASE_URL=http://localhost:8000
+ARG VITE_API_BASE_URL=http://localhost:8000/api
+ARG VITE_API_URL=http://localhost:8000/api
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 # Production stage: Nginx serves the static build

@@ -38,7 +38,6 @@
 | ID | Title | Confidence | Affected files | User impact | Fix | Sprint |
 |:---|:---|:---|:---|:---|:---|:---|
 | **SEC-002** | Student authentication absent — `/student-profile` and `/student-opt-out` rely on a 4-entry demo roster only | Confirmed | `routes_workflow.py:60` (DEMO_STUDENT_ROSTER) | Any caller who knows a valid roll number can read that student's pass | Requires per-student credentials or opaque token; demo roster is a mitigation only | Sprint-8 (deployment) |
-| **SEC-003** | `POST /simulate` is ungated, synchronous, runs up to 300 CP-SAT solves on the event loop | Confirmed | `routes_simulation.py:7` | Any caller can saturate the server CPU | Rate-limit or run async; add auth for resource protection | Sprint-8 |
 
 ---
 
@@ -46,7 +45,6 @@
 
 | ID | Title | Confidence | Affected files | User impact | Fix | Sprint |
 |:---|:---|:---|:---|:---|:---|:---|
-| **A11Y-001** | 15 form labels with no `htmlFor/id`, 4 modals with no role/focus-trap/Escape, zero `:focus-visible` | Confirmed | `Navbar.jsx:275-363`, `OfficeDashboard.jsx:1098-1187`, `index.css` | Keyboard-only users cannot operate forms or dismiss modals | Add `htmlFor`, `id`, `role="dialog"`, focus trap, Escape handler | Sprint-8 |
 
 ---
 
@@ -54,9 +52,6 @@
 
 | ID | Title | Confidence | Affected files | Sprint |
 |:---|:---|:---|:---|:---|
-| **M-05** | `backend/Dockerfile` DB path mismatch | Confirmed | `backend/Dockerfile` | Sprint-8 |
-| **M-06** | `frontend/Dockerfile` build arg `VITE_API_BASE_URL` never reaches client | Confirmed | `frontend/Dockerfile`, `services/api.js:3` | Sprint-8 |
-| **M-07** | Two divergent `requirements.txt` files | Confirmed | root + `backend/` | Sprint-0 |
 | **M-17** | `H-04`: N+1 serial OSRM calls in CSV benchmark (one per bus) | Confirmed | `routes_workflow.py:469,533` | Sprint-5 |
 
 ---
@@ -65,12 +60,9 @@
 
 | ID | Title | Sprint |
 |:---|:---|:---|
-| **L-01** | No Content Security Policy | Sprint-8 |
 | **L-02** | OSRM tile fetched from browser (should proxy through backend) | Sprint-6 |
 | **L-03** | Tile URLs hardcoded; map fully broken offline | Sprint-6 |
 | **L-05** | `index` used as list `key` in several places | Sprint-1 |
-| **L-06** | `datetime.utcnow` (naive) alongside tz-aware columns | Sprint-8 |
-| **L-07** | `.oxlintrc.json` enables only 2 rules | Sprint-8 |
 | **L-08** | Mojibake (U+FFFD) across multiple doc files | Sprint-0 |
 
 ---
@@ -125,3 +117,11 @@ Verified items with recorded regression test evidence:
 | DATA-006 (H-10) | Replaced uncached `db.query(Stop).all()` in student profile endpoint with module-level cache `_get_all_stops_cached` | Verified in Sprint-7: `test_stops_caching_eliminates_n_plus_one_queries` |
 | STUDENT-001 | Restructured StudentView into 5 modular sub-navigation tabs (All, Pass, Route, Schedule, Status) with rich timetable & status cards | Verified in Sprint-7: `npm run lint` clean, `npm run build` clean |
 | DISPATCH-001 / DISPATCH-002 | Server-side plan approval guard `POST /api/workflow/plan/approve` and atomic `Plan` model persistence | Verified in Sprint-4 & Sprint-7: plan integration verified in `test_student_profile_sources_from_approved_plan` |
+| SEC-003 | CPU DOS protection on `POST /api/simulate` via concurrency lock returning HTTP 429 | Verified in Sprint-8: `test_simulation_concurrency_lock_returns_429` |
+| A11Y-001 | Accessible modal dialogs (`role="dialog"`, `aria-modal="true"`, `aria-labelledby`, Escape handlers), explicit `htmlFor/id` form bindings across modals, and `:focus-visible` focus rings in `index.css` | Verified in Sprint-8: `test_accessibility_attributes_present_in_source`, OxLint 0 warnings |
+| M-05 | Aligned `backend/Dockerfile` DB directory to `/app/data/busify.db` to match `docker-compose.yml` volume mount | Verified in Sprint-8: `test_docker_and_requirements_consistency` |
+| M-06 | Normalized API base URL in `services/api.js` to accept both `VITE_API_BASE_URL` and `VITE_API_URL` with guaranteed `/api` path; passed both in `frontend/Dockerfile` | Verified in Sprint-8: `test_docker_and_requirements_consistency` |
+| M-07 | Synchronized `backend/requirements.txt` with pinned root `requirements.txt` | Verified in Sprint-8: `test_docker_and_requirements_consistency` |
+| L-01 | Added `SecurityHeadersMiddleware` enforcing CSP, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` | Verified in Sprint-8: `test_security_headers_present_on_api`, `test_security_headers_on_root_endpoint` |
+| L-06 | Replaced deprecated `datetime.utcnow` with `datetime.now(timezone.utc)` in `Plan` model | Verified in Sprint-8: `test_plan_created_at_timezone` |
+| L-07 | Expanded `frontend/.oxlintrc.json` with standard correctness rules (`no-debugger`, `no-dupe-keys`, `no-empty`, etc.) | Verified in Sprint-8: 0 warnings, 0 errors across 105 rules |

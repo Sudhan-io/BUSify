@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
   FileSpreadsheet,
@@ -68,6 +68,17 @@ export default function DispatchManifest() {
     setZoneFilter(zone);
     setCurrentPage(1);
   };
+
+  useEffect(() => {
+    if (!selectedTripSheet) return;
+    const handleTripSheetKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedTripSheet(null);
+      }
+    };
+    window.addEventListener('keydown', handleTripSheetKeyDown);
+    return () => window.removeEventListener('keydown', handleTripSheetKeyDown);
+  }, [selectedTripSheet, setSelectedTripSheet]);
 
   const handlePageSizeChange = (size) => {
     setPageSize(size);

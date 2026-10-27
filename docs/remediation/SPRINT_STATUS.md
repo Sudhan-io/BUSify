@@ -28,7 +28,7 @@
 | Sprint-5 | Fleet & Drivers + Students & Demand management | **DONE** | Fleet CRUD, driver conflict guard, student demand aggregation, lifespan cleanup | None | Build: 0 errors; Lint: 0 errors; Pytest: 103 passed, 0 failed in 128.72s |
 | Sprint-6 | Routes & Map correctness | **DONE** | Arrival time field name fixed; stop detail fields correct; zone metadata consistent; coordinates canonical | None | Build: 0 errors; Lint: 0 errors; Pytest: 107 passed, 0 failed in 134.05s |
 | Sprint-7 | Student Commuter experience | **DONE** | Pass shows correct occupancy & approved plan data; 5 clear route/schedule tabs; roll lookup with enumeration protection (NAV-003, DATA-006, STUDENT-001) | None | Build: 0 errors; Lint: 0 errors; Pytest: 112 passed, 0 failed in 137.95s |
-| Sprint-8 | Security, accessibility, deployment | **NOT STARTED** | All forms keyboard-accessible; all modals have focus trap; Docker paths fixed; requirements consolidated; regression suite passes | Requires all prior | — |
+| Sprint-8 | Security, accessibility, deployment | **DONE** | All forms keyboard-accessible; all modals have focus trap; Docker paths fixed; requirements consolidated; regression suite passes | None | Pytest: 122 passed, 0 failed; OxLint: 0 warnings, 0 errors; Vite build: clean in 1.09s |
 
 ---
 
@@ -572,4 +572,63 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 - `docs/remediation/SPRINT_STATUS.md`
 
 **Outstanding defects from this sprint:** None.
-**Next task:** Sprint-8 — Security, accessibility, and deployment consolidation (`A11Y-001`, `SEC-003`, `M-05`, `M-06`, `L-01`, `L-06`, `L-07`).
+**Next task:** None. All sprints 0-8 complete.
+
+---
+
+## Sprint-8 Detail
+
+**Objective:** Deliver cross-module hardening across security, privacy, accessibility, and container deployment consistency. Remediate `A11Y-001`, `SEC-003`, `M-05`, `M-06`, `M-07`, `L-01`, `L-06`, and `L-07`.
+
+**Acceptance criteria:**
+- [x] Security headers middleware (`nosniff`, `DENY`, `strict-origin-when-cross-origin`, CSP) active across API and root (`L-01`).
+- [x] Concurrency guard on `POST /api/simulate` returning HTTP 429 on concurrent execution, protecting CPU from OR-Tools CP-SAT exhaustion (`SEC-003`).
+- [x] Strict production environment validation in `backend/app/config.py` rejecting SQLite, wildcard CORS, and weak JWT secrets.
+- [x] Timezone-aware UTC timestamp in `backend/app/models/plan.py` (`L-06`).
+- [x] Modal accessibility (`role="dialog"`, `aria-modal="true"`, `aria-labelledby`, `htmlFor/id` label bindings, and Escape listeners) implemented across `Navbar.jsx`, `OfficeLayout.jsx`, `FleetAndDrivers.jsx`, and `DispatchManifest.jsx` (`A11Y-001`).
+- [x] `:focus-visible` focus indicators added to `frontend/src/index.css` (`A11Y-001`).
+- [x] Aligned `backend/Dockerfile` DB directory to `/app/data/busify.db` to match `docker-compose.yml` (`M-05`).
+- [x] Normalized API client in `frontend/src/services/api.js` supporting both `VITE_API_BASE_URL` and `VITE_API_URL` with guaranteed `/api` path; passed both in `frontend/Dockerfile` (`M-06`).
+- [x] Synchronized `backend/requirements.txt` with pinned root `requirements.txt` (`M-07`).
+- [x] Expanded `frontend/.oxlintrc.json` with standard correctness rules; 0 warnings, 0 errors across 105 rules (`L-07`).
+- [x] Full regression test suite passing (122 passed, 0 failed).
+
+---
+
+## Handoff Note — Sprint-8 — 2026-10-27
+
+**Completed tasks:**
+- **L-01:** Implemented `SecurityHeadersMiddleware` with Content-Security-Policy and frame protection.
+- **SEC-003:** Added thread-safe concurrency lock on simulation endpoint to eliminate CPU DOS risk.
+- **Config & Secrets:** Added production environment guard verifying non-SQLite database, 32+ char secrets, non-wildcard CORS, and strong passwords.
+- **A11Y-001:** Hardened all 4 interactive application modals with ARIA attributes, Escape keyboard handlers, linked form labels, and focus rings.
+- **Container Parity (M-05, M-06, M-07):** Unified SQLite container path, normalized API base URL handling, and aligned pinned requirements.
+- **L-06 & L-07:** Replaced deprecated `datetime.utcnow` and broadened OxLint rules to 105 rules with 0 warnings.
+- **Verification:**
+  - Dedicated Pytest: 10 passed, 0 failed in 1.86s (`test_sprint8_hardening.py`).
+  - Full Regression Suite: 122 passed, 0 failed across all sprints.
+  - Frontend Lint: 0 warnings, 0 errors on 105 rules.
+  - Frontend Build: Clean production bundle in 1.09s.
+  - Code Hygiene: `git diff --check` clean (0 errors).
+
+**Modified files:**
+- `backend/app/api/routes_simulation.py`
+- `backend/app/config.py`
+- `backend/app/main.py`
+- `backend/app/models/plan.py`
+- `backend/app/tests/test_sprint8_hardening.py`
+- `backend/Dockerfile`
+- `backend/requirements.txt`
+- `frontend/src/components/Navbar.jsx`
+- `frontend/src/layouts/OfficeLayout.jsx`
+- `frontend/src/pages/office/FleetAndDrivers.jsx`
+- `frontend/src/pages/office/DispatchManifest.jsx`
+- `frontend/src/services/api.js`
+- `frontend/src/index.css`
+- `frontend/.oxlintrc.json`
+- `frontend/Dockerfile`
+- `docs/remediation/SPRINTS/SPRINT-08.md`
+- `docs/remediation/DEFECT_REGISTER.md`
+- `docs/remediation/SPRINT_STATUS.md`
+
+**Outstanding defects from this sprint:** None. All planned remediation sprints 0–8 are complete and verified.

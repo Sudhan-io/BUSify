@@ -1,6 +1,27 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        if not request.url.path.startswith(("/docs", "/redoc", "/openapi.json")):
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "img-src 'self' data: https://*.tile.openstreetmap.org https://unpkg.com; "
+                "script-src 'self' 'unsafe-inline'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*"
+            )
+        return response
+
 from backend.app.config import settings
 from backend.app.api import api_router
 from backend.app.auth.routes_auth import router as auth_router
@@ -43,6 +64,7 @@ app = FastAPI(
 
 
 # CORS — restricted to declared origins (never wildcard in production)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,

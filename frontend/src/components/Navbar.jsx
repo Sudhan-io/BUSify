@@ -102,6 +102,18 @@ export default function Navbar({
     });
   };
 
+  useEffect(() => {
+    if (!showAddModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowAddModal(false);
+        setFormError(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAddModal, setShowAddModal, setFormError]);
+
   return (
     <>
       <header className="topbar">
@@ -279,16 +291,18 @@ export default function Navbar({
       {/* Add College / Institution Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-[#18201d]/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] overflow-y-auto">
-          <div className="bg-white rounded-[12px] border border-[#18201d] max-w-lg w-full p-6 shadow-2xl space-y-4 my-8 max-h-[92vh] overflow-y-auto animate-fade-in text-xs">
+          <div role="dialog" aria-modal="true" aria-labelledby="register-college-title" className="bg-white rounded-[12px] border border-[#18201d] max-w-lg w-full p-6 shadow-2xl space-y-4 my-8 max-h-[92vh] overflow-y-auto animate-fade-in text-xs">
             <div className="flex items-start justify-between border-b border-[#edf1ed] pb-3">
               <div>
                 <p className="kicker" style={{ margin: 0 }}>MULTI-CAMPUS SCALABILITY</p>
-                <h3 className="card-title text-base font-bold">Register New College or University</h3>
+                <h3 id="register-college-title" className="card-title text-base font-bold">Register New College or University</h3>
                 <p className="text-xs text-[#69716d]">
                   Configure campus central depot coordinates. All radial geocoding, route generation, and fleet optimization will dynamically anchor here.
                 </p>
               </div>
               <button
+                type="button"
+                aria-label="Close dialog"
                 onClick={() => { setShowAddModal(false); setFormError(null); }}
                 className="text-[#69716d] hover:text-[#18201d] p-1"
               >
@@ -323,10 +337,11 @@ export default function Navbar({
             {/* Form */}
             <form onSubmit={handleCreateSubmit} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold text-[#18201d] mb-1">
+                <label htmlFor="inst-name" className="block text-[11px] font-semibold text-[#18201d] mb-1">
                   Full Institution Name *
                 </label>
                 <input
+                  id="inst-name"
                   type="text"
                   required
                   placeholder="e.g. Government College of Technology"
@@ -338,10 +353,11 @@ export default function Navbar({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#18201d] mb-1">
+                  <label htmlFor="inst-short-name" className="block text-[11px] font-semibold text-[#18201d] mb-1">
                     Short Display Code
                   </label>
                   <input
+                    id="inst-short-name"
                     type="text"
                     placeholder="e.g. GCT CBE"
                     value={formData.short_name}
@@ -350,10 +366,11 @@ export default function Navbar({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#18201d] mb-1">
+                  <label htmlFor="inst-city" className="block text-[11px] font-semibold text-[#18201d] mb-1">
                     City / District
                   </label>
                   <input
+                    id="inst-city"
                     type="text"
                     placeholder="e.g. Coimbatore"
                     value={formData.city}
@@ -365,10 +382,11 @@ export default function Navbar({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#18201d] mb-1">
+                  <label htmlFor="inst-campus-lat" className="block text-[11px] font-semibold text-[#18201d] mb-1">
                     Campus Depot Latitude *
                   </label>
                   <input
+                    id="inst-campus-lat"
                     type="number"
                     step="0.0001"
                     required
@@ -379,10 +397,11 @@ export default function Navbar({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#18201d] mb-1">
+                  <label htmlFor="inst-campus-lng" className="block text-[11px] font-semibold text-[#18201d] mb-1">
                     Campus Depot Longitude *
                   </label>
                   <input
+                    id="inst-campus-lng"
                     type="number"
                     step="0.0001"
                     required
@@ -396,10 +415,11 @@ export default function Navbar({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#18201d] mb-1">
+                  <label htmlFor="inst-fleet-size" className="block text-[11px] font-semibold text-[#18201d] mb-1">
                     Active Fleet Sizing (Buses)
                   </label>
                   <input
+                    id="inst-fleet-size"
                     type="number"
                     min="1"
                     max="100"
@@ -409,10 +429,11 @@ export default function Navbar({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#18201d] mb-1">
+                  <label htmlFor="inst-bus-capacity" className="block text-[11px] font-semibold text-[#18201d] mb-1">
                     Standard Bus Capacity (Seats)
                   </label>
                   <input
+                    id="inst-bus-capacity"
                     type="number"
                     min="20"
                     max="80"

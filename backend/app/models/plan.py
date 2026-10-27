@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, text
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.app.database import Base, engine
 
 class Plan(Base):
@@ -15,7 +15,7 @@ class Plan(Base):
     status = Column(String(32), default="APPROVED", nullable=True)
     total_riders = Column(Integer, default=0, nullable=True)
     route_json = Column(Text, nullable=False)  # JSON-encoded ordered stops and times
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     def to_dict(self):
         return {

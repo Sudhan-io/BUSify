@@ -1,6 +1,6 @@
 import os
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, model_validator
 
 
 class Settings(BaseSettings):
@@ -89,6 +89,36 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ALLOWED_ORIGINS.split(",") if o.strip()]
+
+    ENVIRONMENT: str = Field(
+        default="development",
+        description="Runtime environment ('development' | 'testing' | 'production').",
+    )
+
+    @model_validator(mode="after")
+    def validate_production_security(self):
+        env = (self.ENVIRONMENT or "development").strip().lower()
+        if env == "production":
+            # 1. Require strong JWT_SECRET
+            insecure_secrets = {"dev_secret", "secret", "change_this", "your_secret_key_here", "busify_secret_key"}
+            if not self.JWT_SECRET or len(self.JWT_SECRET) < 32 or self.JWT_SECRET.lower() in insecure_secrets:
+                raise ValueError("In production, JWT_SECRET must be set and contain at least 32 characters of high-entropy data.")
+
+            # 2. Require PostgreSQL or MySQL (no SQLite in production)
+            if self.DATABASE_URL.lower().startswith("sqlite"):
+                raise ValueError("In production, DATABASE_URL must not use SQLite. Use PostgreSQL (e.g. postgresql://...) or MySQL.")
+
+            # 3. Disallow wildcard CORS
+            if "*" in self.cors_origins_list or self.CORS_ALLOWED_ORIGINS.strip() == "*":
+                raise ValueError("In production, CORS_ALLOWED_ORIGINS must not allow '*' wildcard.")
+
+            # 4. Require strong admin passwords
+            insecure_passwords = {"admin", "password", "123456", "admin123", "transport123"}
+            if len(self.ADMIN_PASSWORD) < 8 or self.ADMIN_PASSWORD.lower() in insecure_passwords:
+                raise ValueError("In production, ADMIN_PASSWORD must be at least 8 characters and not a trivial default.")
+            if len(self.TRANSPORT_OFFICER_PASSWORD) < 8 or self.TRANSPORT_OFFICER_PASSWORD.lower() in insecure_passwords:
+                raise ValueError("In practical production, TRANSPORT_OFFICER_PASSWORD must be at least 8 characters and not a trivial default.")
+        return self
 
     model_config = {
         "env_file": ".env",

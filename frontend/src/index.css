@@ -47,6 +47,22 @@ button, input, textarea, select {
   font: inherit;
 }
 
+/* Accessibility Focus Rings (A11Y-001) */
+:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
+}
+
+
 button {
   cursor: pointer;
 }
