@@ -187,6 +187,8 @@ export default function DailyPlanning() {
                 </tr>
               ) : (comparisonChartData || []).map((row, idx) => {
                 const diff = row.optimized_seats - row.baseline_seats;
+                const busCap = manifestData?.bus_capacity || 55;
+                const diffBuses = Math.round(diff / busCap);
                 return (
                   <tr key={idx}>
                     <td className="font-bold text-[#18201d]">{row.name}</td>
@@ -197,10 +199,10 @@ export default function DailyPlanning() {
                     <td className="font-mono text-[#69716d]">{row.baseline_seats} seats</td>
                     <td className="font-mono font-semibold text-[#ff6b00]">{row.demand} students</td>
                     <td>
-                      {diff > 0 ? (
-                        <span className="badge badge-sage text-[10px]">+{diff / 55} Buses Shifted Here</span>
-                      ) : diff < 0 ? (
-                        <span className="badge badge-coral text-[10px]">{diff / 55} Buses Reallocated</span>
+                      {diffBuses > 0 ? (
+                        <span className="badge badge-sage text-[10px]">+{diffBuses} Buses Shifted Here</span>
+                      ) : diffBuses < 0 ? (
+                        <span className="badge badge-coral text-[10px]">{diffBuses} Buses Reallocated</span>
                       ) : (
                         <span className="badge badge-blue text-[10px]">Baseline Stable</span>
                       )}

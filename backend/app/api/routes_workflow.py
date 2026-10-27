@@ -21,6 +21,7 @@ from backend.app.core.routing.road_geometry_service import road_geometry_service
 from backend.app.core.forecasting.disaggregator import disaggregate_area_demand
 from backend.app.core.data.synthetic_generator import AREAS_CONFIG
 from backend.app.core.data.anonymizer import hash_student_id
+from backend.app.core.simulation.simulator import BASELINE_ALLOCATION
 from backend.app.core.schedule_utils import format_12h, format_24h
 from backend.app.config import settings
 
@@ -121,8 +122,8 @@ def get_operational_manifest(
         pred = forecaster.predict_for_date(target_date, area_id, exam_flag=is_exam)
         forecasts[area_id] = int(round(pred["p90_demand"] * surge_multiplier))
 
-    # 2. Solve optimal fleet allocation
-    baseline = {a: 10 for a in AREAS_CONFIG.keys()}
+    # 2. Solve optimal fleet allocation (uses canonical BASELINE_ALLOCATION, resolving ALLOC-001)
+    baseline = BASELINE_ALLOCATION.copy()
     alloc_res = fleet_allocator.solve(forecasts, baseline)
     optimized_allocation = alloc_res["allocation"]
 
@@ -556,9 +557,10 @@ def parse_and_benchmark_csv(
     manual_overloaded_buses = 0
     manual_routes_summary = []
     
+    standard_bus_capacity = settings.DEFAULT_BUS_CAPACITY
     for b_code, b_stops in manual_groups.items():
         riders = sum(s["student_count"] for s in b_stops)
-        standing = max(0, riders - 55)
+        standing = max(0, riders - standard_bus_capacity)
         if standing > 0:
             manual_overloaded_buses += 1
         manual_standing += standing
@@ -584,7 +586,7 @@ def parse_and_benchmark_csv(
             "bus_code": b_code,
             "stops_count": len(b_stops),
             "riders": riders,
-            "capacity": 55,
+            "capacity": standard_bus_capacity,
             "standing": standing,
             "distance_km": route_km,
             "is_overloaded": standing > 0,
@@ -595,8 +597,8 @@ def parse_and_benchmark_csv(
     manual_buses_count = len(manual_groups)
     manual_total_km = round(manual_total_km, 1)
     
-    # 2. BUSify Optimized CVRP Route Calculation (guarantees zero standing)
-    opt_bus_capacity = 52
+    # 2. BUSify Optimized Route Calculation (guarantees zero standing, resolves ALLOC-004)
+    opt_bus_capacity = standard_bus_capacity
     
     def stop_angle(s):
         return math.atan2(s["latitude"] - campus_lat, s["longitude"] - campus_lng)
@@ -648,7 +650,7 @@ def parse_and_benchmark_csv(
             "bus_code": b_code,
             "stops_count": len(ordered_stops),
             "riders": riders,
-            "capacity": 55,
+            "capacity": standard_bus_capacity,
             "standing": 0,
             "distance_km": route_km,
             "is_overloaded": False,
@@ -657,7 +659,12 @@ def parse_and_benchmark_csv(
         
     opt_total_km = round(opt_total_km, 1)
     
-    # Financial and Environmental Savings
+    # Financial and Environmental Savings (resolves M-04 with documented formulas and cited factors)
+    # Assumptions:
+    # - 2 trips/day (morning pickup + evening drop) * 220 academic working days/year.
+    # - 3.8 km/L average transit bus fuel efficiency (standard college bus).
+    # - Rs. 94.5 / Liter commercial diesel rate in Tamil Nadu.
+    # - 2.68 kg CO2 emitted per Liter of diesel fuel combusted (IPCC conversion factor).
     km_saved_daily = max(0.0, round(manual_total_km - opt_total_km, 1))
     km_saved_pct = round((km_saved_daily / max(manual_total_km, 1.0)) * 100, 1)
     
@@ -682,7 +689,7 @@ def parse_and_benchmark_csv(
                 "total_riders": total_riders,
                 "standing_passengers": manual_standing,
                 "overloaded_buses": manual_overloaded_buses,
-                "avg_utilization_pct": round(total_riders / max(manual_buses_count * 55, 1) * 100, 1),
+                "avg_utilization_pct": round(total_riders / max(manual_buses_count * standard_bus_capacity, 1) * 100, 1),
                 "routes": manual_routes_summary,
             },
             "optimized": {
@@ -691,7 +698,7 @@ def parse_and_benchmark_csv(
                 "total_riders": total_riders,
                 "standing_passengers": 0,
                 "overloaded_buses": 0,
-                "avg_utilization_pct": round(total_riders / max(opt_buses_count * 55, 1) * 100, 1),
+                "avg_utilization_pct": round(total_riders / max(opt_buses_count * standard_bus_capacity, 1) * 100, 1),
                 "routes": opt_routes_summary,
             },
             "savings": {
@@ -741,12 +748,29 @@ async def upload_stops_csv(
     target_lng = campus_lng or CAMPUS_LNG
     target_name = institution_name or "VSB Engineering College Karur"
 
+    MAX_CSV_BYTES = 5 * 1024 * 1024  # 5MB payload cap to prevent memory DOS
+
     if file is not None:
         raw_bytes = await file.read()
+        if len(raw_bytes) > MAX_CSV_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Uploaded file exceeds maximum allowed size of {MAX_CSV_BYTES // (1024*1024)}MB."
+            )
         content = raw_bytes.decode("utf-8", errors="replace")
     elif csv_text is not None and csv_text.strip():
+        if len(csv_text.encode("utf-8")) > MAX_CSV_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Submitted CSV text exceeds maximum allowed size of {MAX_CSV_BYTES // (1024*1024)}MB."
+            )
         content = csv_text
     elif body is not None and body.csv_text.strip():
+        if len(body.csv_text.encode("utf-8")) > MAX_CSV_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Submitted CSV text exceeds maximum allowed size of {MAX_CSV_BYTES // (1024*1024)}MB."
+            )
         content = body.csv_text
         if body.campus_lat is not None:
             target_lat = body.campus_lat

@@ -98,3 +98,33 @@ def test_api_error_handling_nonexistent_bus():
     response = client.get("/api/crowding?bus_id=BUS-9999")
     assert response.status_code == 404
     assert "detail" in response.json()
+
+def test_workflow_manifest_uses_canonical_baseline():
+    """Validates ALLOC-001: Manifest endpoint uses canonical BASELINE_ALLOCATION."""
+    from backend.app.core.simulation.simulator import BASELINE_ALLOCATION
+    response = client.get("/api/workflow/operational-manifest?scenario=REGULAR&date=2026-10-15")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["baseline_allocation"] == BASELINE_ALLOCATION
+    assert sum(data["baseline_allocation"].values()) == 50
+
+def test_upload_stops_csv_size_limit_rejection(admin_headers):
+    """Validates endpoint security: CSV file upload exceeding 5MB returns 413."""
+    large_payload = b"stop_name,zone,student_count,suggested_bus_code,latitude,longitude\n" + (b"Stop,AREA_A,10,BUS-01,10.9,78.0\n" * 180000)
+    assert len(large_payload) > 5 * 1024 * 1024
+    response = client.post(
+        "/api/workflow/upload-stops-csv",
+        files={"file": ("large_stops.csv", large_payload, "text/csv")},
+        headers=admin_headers,
+    )
+    assert response.status_code == 413
+    assert "exceeds" in response.json()["detail"].lower()
+
+def test_bus_registration_rejects_non_positive_seats(admin_headers):
+    """Validates bus creation rejects seats < 10 with 422 to prevent ZeroDivision in crowding."""
+    response = client.post(
+        "/api/buses",
+        json={"bus_id": "BUS-INVALID-0", "seats": 0, "default_area_id": "AREA_A"},
+        headers=admin_headers,
+    )
+    assert response.status_code == 422

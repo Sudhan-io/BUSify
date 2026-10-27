@@ -48,6 +48,8 @@ class TransitSimulator:
         total_dynamic_standing = 0
         total_baseline_overcrowded_trips = 0
         total_dynamic_overcrowded_trips = 0
+        total_baseline_trips = 0
+        total_dynamic_trips = 0
         total_trips = 0
         total_actual_riders = 0
 
@@ -112,7 +114,11 @@ class TransitSimulator:
             total_dynamic_standing += dyn_standing_day
             total_baseline_overcrowded_trips += base_overcrowded_buses
             total_dynamic_overcrowded_trips += dyn_overcrowded_buses
-            total_trips += settings.TOTAL_FLEET_SIZE
+            day_base_trips = sum(BASELINE_ALLOCATION.values())
+            day_dyn_trips = sum(dynamic_allocation.values())
+            total_baseline_trips += day_base_trips
+            total_dynamic_trips += day_dyn_trips
+            total_trips += day_base_trips
 
             daily_comparisons.append({
                 "date": d_str,
@@ -128,9 +134,9 @@ class TransitSimulator:
                 "dynamic_reallocations_count": alloc_result["metrics"]["total_fleet_churn_adjustments"],
             })
 
-        # Aggregated KPIs
-        baseline_overcrowd_rate = round((total_baseline_overcrowded_trips / max(total_trips, 1)) * 100, 2)
-        dynamic_overcrowd_rate = round((total_dynamic_overcrowded_trips / max(total_trips, 1)) * 100, 2)
+        # Aggregated KPIs (resolves DATA-005 / H-12 by using actual allocation counts)
+        baseline_overcrowd_rate = round((total_baseline_overcrowded_trips / max(total_baseline_trips, 1)) * 100, 2)
+        dynamic_overcrowd_rate = round((total_dynamic_overcrowded_trips / max(total_dynamic_trips, 1)) * 100, 2)
         
         overall_standing_reduction = round(
             ((total_baseline_standing - total_dynamic_standing) / max(total_baseline_standing, 1)) * 100, 1

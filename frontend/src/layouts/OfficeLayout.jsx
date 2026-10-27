@@ -268,13 +268,14 @@ export default function OfficeLayout({
     ? Object.keys(manifestData?.area_allocation || {}).flatMap(areaId => {
     const baseCount = manifestData?.baseline_allocation?.[areaId] || 10;
     const optCount = manifestData?.area_allocation?.[areaId] || 10;
+    const cap = manifestData?.bus_capacity || 55;
     const fc = forecastAreas.find(a => a.area_id === areaId);
     if (!fc) return [];
     return {
       name: areaId.replace('AREA_', 'Zone '),
       demand: fc.p90_demand,
-      baseline_seats: baseCount * 55,
-      optimized_seats: optCount * 55,
+      baseline_seats: baseCount * cap,
+      optimized_seats: optCount * cap,
       buses: optCount,
     };
   })

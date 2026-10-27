@@ -37,7 +37,7 @@ class BusSchema(BaseModel):
 
 class BusCreateRequest(BaseModel):
     bus_id: str
-    seats: int = 55
+    seats: int = Field(default=55, ge=10, le=120, description="Seats per bus (must be positive)")
     default_area_id: Optional[str] = "AREA_A"
     registration_no: Optional[str] = None
     driver_name: Optional[str] = None
@@ -47,7 +47,7 @@ class BusCreateRequest(BaseModel):
     is_active: bool = True
 
 class BusUpdateRequest(BaseModel):
-    seats: Optional[int] = None
+    seats: Optional[int] = Field(default=None, ge=10, le=120, description="Seats per bus (must be positive)")
     default_area_id: Optional[str] = None
     registration_no: Optional[str] = None
     driver_name: Optional[str] = None
