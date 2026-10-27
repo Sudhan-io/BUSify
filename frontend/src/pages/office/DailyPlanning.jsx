@@ -15,6 +15,7 @@ export default function DailyPlanning() {
     manifestData,
     loading
   } = useOutletContext();
+  const hasComparisonData = comparisonChartData.length > 0;
 
   return (
     <div className="space-y-6">
@@ -78,19 +79,39 @@ export default function DailyPlanning() {
             title="Capacity vs. Scenario Demand"
             subtitle="Comparing status-quo baseline against BUSify dynamic allocation"
           >
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={comparisonChartData || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" stroke="#69716d" fontSize={11} tickLine={false} />
-                <YAxis stroke="#69716d" fontSize={11} tickLine={false} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#ffffff', borderColor: '#dfe5df', borderRadius: '8px', fontSize: '12px' }}
-                />
-                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                <Bar dataKey="demand" name="Expected Demand" fill="#ff6b00" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="baseline_seats" name="Static Seats" fill="#69716d" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="optimized_seats" name="BUSify Seats" fill="#18201d" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {loading ? (
+              <div
+                aria-busy="true"
+                aria-label="Loading capacity and demand chart"
+                className="h-80 rounded-[8px] bg-[#f7f8f5] animate-pulse"
+              >
+                <div className="flex h-full items-end gap-4 px-8 pb-8">
+                  {[45, 70, 55, 85, 62].map((height, index) => (
+                    <div key={index} className="flex-1 rounded-t bg-[#dfe5df]" style={{ height: `${height}%` }} />
+                  ))}
+                </div>
+              </div>
+            ) : !hasComparisonData ? (
+              <div className="flex h-80 items-center justify-center rounded-[8px] border border-dashed border-[#dfe5df] bg-[#f7f8f5] px-6 text-center">
+                <p className="text-sm text-[#69716d]" role="status">
+                  No forecast data available for this date and scenario.
+                </p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={comparisonChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="name" stroke="#69716d" fontSize={11} tickLine={false} />
+                  <YAxis stroke="#69716d" fontSize={11} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#ffffff', borderColor: '#dfe5df', borderRadius: '8px', fontSize: '12px' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                  <Bar dataKey="demand" name="Expected Demand" fill="#ff6b00" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="baseline_seats" name="Static Seats" fill="#69716d" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="optimized_seats" name="BUSify Seats" fill="#18201d" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </ChartContainer>
         </div>
 
@@ -158,7 +179,13 @@ export default function DailyPlanning() {
               </tr>
             </thead>
             <tbody>
-              {(comparisonChartData || []).map((row, idx) => {
+              {!loading && !hasComparisonData ? (
+                <tr>
+                  <td colSpan="6" className="py-8 text-center text-[#69716d]">
+                    No corridor allocation data is available for this date and scenario.
+                  </td>
+                </tr>
+              ) : (comparisonChartData || []).map((row, idx) => {
                 const diff = row.optimized_seats - row.baseline_seats;
                 return (
                   <tr key={idx}>

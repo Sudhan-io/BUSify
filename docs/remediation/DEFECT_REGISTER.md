@@ -78,7 +78,6 @@
 | **M-11** | `base.metadata.create_all()` at import time — should be lifespan handler | Confirmed | `main.py:10` | Sprint-8 |
 | **M-12** | Raw `ALTER TABLE` migration at import in `routes_buses.py` | Confirmed | `routes_buses.py:59` | Sprint-8 |
 | **M-13** | `Plan` model unused (no read, no write path) | Confirmed | `models/plan.py` | Sprint-4 |
-| **M-15** | Demand vs capacity chart is a bar chart that appears blank when `forecastData` is null | Probable | `OfficeDashboard.jsx:583-601` | Sprint-2 |
 | **M-17** | `H-04`: N+1 serial OSRM calls in CSV benchmark (one per bus) | Confirmed | `routes_workflow.py:469,533` | Sprint-5 |
 
 ---
@@ -129,3 +128,4 @@ See `docs/OUTSTANDING_ISSUES.md` §2 for full descriptions and verification evid
 | DATA-002 | `total_seats_deployed` in `/api/workflow/operational-manifest` computes sum of seats from database active buses (`Bus.is_active == True`), replacing `len(manifest) * capacity` | Verified in Sprint-2 Task 2.4; 5 focused tests passing + full regression suite (65 passed) |
 | DATA-003 | Seating equity defined as `max(0, 1 - CV) * 100` over per-area utilization variance; exposed via `seating_equity_pct`, `area_utilization_variance`, and `per_area_utilization_pct`; UI displays actual equity percentage | Verified in Sprint-2 Task 2.5; 7 focused tests passing + full regression suite (72 passed) |
 | DATA-004 (H-11) | `disaggregate_area_demand` guards against empty areas, negative demand, and zero-registration positive demand with HTTPException(422); conserves zero demand without fabricating uniform weights (ADR-013) | Verified in Sprint-2 Task 2.6 review; 9 focused unit tests passing + full regression suite (84 passed) |
+| M-15 | Daily Planning demand/capacity chart renders an accessible loading skeleton and an explicit empty state when no comparison data is available | Verified in Sprint-2 Task 2.7: `npm run lint` (0 errors) and `npm run build` passed on 2026-10-27 |

@@ -261,19 +261,24 @@ export default function OfficeLayout({
     }
   };
 
-  // Build comparison chart data
-  const comparisonChartData = Object.keys(manifestData?.area_allocation || {}).map(areaId => {
+  // Build comparison chart data only when the forecast API supplied demand values.
+  // A manifest alone cannot supply an authoritative demand series for this chart.
+  const forecastAreas = forecastData?.areas;
+  const comparisonChartData = Array.isArray(forecastAreas)
+    ? Object.keys(manifestData?.area_allocation || {}).flatMap(areaId => {
     const baseCount = manifestData?.baseline_allocation?.[areaId] || 10;
     const optCount = manifestData?.area_allocation?.[areaId] || 10;
-    const fc = (forecastData?.areas || []).find(a => a.area_id === areaId);
+    const fc = forecastAreas.find(a => a.area_id === areaId);
+    if (!fc) return [];
     return {
       name: areaId.replace('AREA_', 'Zone '),
-      demand: fc ? fc.p90_demand : optCount * 45,
+      demand: fc.p90_demand,
       baseline_seats: baseCount * 55,
       optimized_seats: optCount * 55,
       buses: optCount,
     };
-  });
+  })
+    : [];
 
   const officeContext = {
     selectedDate,

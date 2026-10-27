@@ -1,6 +1,6 @@
 # Sprint-2 — Data Integrity, Institution Persistence, Metric Canonicalization
 
-**Status:** IN PROGRESS (Task 2.1 complete; Tasks 2.4-2.7 pending)<br>
+**Status:** IN PROGRESS (implementation complete; final backend regression verification blocked by missing Python 3.12 runtime)<br>
 **Prerequisite:** Sprint-1 DONE (navigation shell exists).<br>
 **Objective:** Every KPI card traces to a single authoritative source. Institutions persist in the database. Campus coordinates have one canonical value. Chart renders data.<br>
 **User-visible outcome:** KPI cards show real numbers from the database, not computed-from-defaults or conflicting values.
@@ -133,7 +133,7 @@ In `backend/app/core/forecasting/disaggregator.py`:
 
 ---
 
-### Task 2.7 — Fix demand/capacity bar chart empty/loading state
+### Task 2.7 — Fix demand/capacity bar chart empty/loading state `[COMPLETED]`
 
 In the `DailyPlanning` component (after Sprint-1 extraction), the Recharts `BarChart` renders on `comparisonChartData`. When `forecastData` is `null` (data not loaded yet), `comparisonChartData` is `[]` — the chart renders blank.
 
@@ -160,10 +160,10 @@ Add: if `loading`, render a skeleton. If `!loading && comparisonChartData.length
 - [x] `total_seats_deployed` equals actual sum of active bus seats.
 - [x] `seating_equity_pct` field present in manifest response.
 - [x] Campus coordinates: all map components use `activeInstitution` props, not hardcoded literals.
-- [ ] Demand/capacity chart shows loading skeleton and empty state.
+- [x] Demand/capacity chart shows loading skeleton and empty state.
 - [x] Disaggregator raises 422 when area has no stops.
-- [x] `npm run build` and `npm run lint` clean.
-- [x] No backend tests regressed (83 passed).
+- [x] `npm run build` and `npm run lint` clean (0 lint errors; existing warnings remain).
+- [ ] No backend tests regressed — blocked: Python 3.12 is not installed and Python 3.10 has no pytest/dependencies.
 
 ---
 
