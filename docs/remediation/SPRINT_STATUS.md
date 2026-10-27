@@ -22,7 +22,7 @@
 |:---|:---|:---|:---|:---|:---|
 | Sprint-0 | Baseline, loading states, dead code removal | **DONE** | No hardcoded fallback numbers; loading spinner renders; API errors shown inline; dead files removed; environment verified | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed, 0 failed |
 | Sprint-1 | App shell, navigation, routing | **DONE** | React Router installed; 7 office tabs navigable; student has 3 sections; existing state logic preserved | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed; Browser subagent: 7 routes + student + 404 verified |
-| Sprint-2 | Data integrity, institution persistence | **IN PROGRESS** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | Python 3.12 runtime unavailable for final backend regression run | Tasks 2.1, 2.4-2.7 complete: SEC-001, M-02, DATA-002, DATA-003, DATA-004, M-15 verified; frontend build and lint passed 2026-10-27 |
+| Sprint-2 | Data integrity, institution persistence | **DONE** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | None | Build: 0 errors; Lint: 0 errors; Pytest: 84 passed, 0 failed in 95.57s |
 | Sprint-3 | Daily Planning workflow | **NOT STARTED** | Guided 4-step flow; constraint display; allocation review; no conflicting baselines | Requires Sprint-2 | — |
 | Sprint-4 | Dispatch Manifest — real buses, approval guard | **NOT STARTED** | Manifest uses DB buses/drivers; table paginated; dispatch endpoint creates Plan; button disabled without valid manifest | Requires Sprint-3 | — |
 | Sprint-5 | Fleet & Drivers + Students & Demand management | **NOT STARTED** | Fleet CRUD in dedicated page; student demand aggregation | Requires Sprint-1, Sprint-2 | — |
@@ -129,7 +129,7 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 
 **Objective:** Make every KPI authoritative. Persist institution registry. Canonicalize campus coordinates.
 
-**Status:** IN PROGRESS (Tasks 2.1, 2.4-2.7 complete; final backend regression verification blocked by missing Python 3.12 runtime)
+**Status:** DONE (Tasks 2.1, 2.4-2.7 complete and verified; 84 backend regression tests passed in 95.57s)
 
 **Key tasks:**
 1. [x] Persist `INSTITUTIONS_REGISTRY` to a DB table (SEC-001 / C-04) — *Task 2.1 complete*.
@@ -350,9 +350,9 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 
 **Verification results:**
 - Frontend Lint: `npm run lint` PASSED (0 errors; 13 pre-existing warnings).
-- Frontend Build: `npm run build` PASSED (0 errors).
+- Frontend Build: `npm run build` PASSED (0 errors in 14.37s).
 - Code Hygiene: `git diff --check` PASSED.
-- Backend Regression: BLOCKED — `py -3.12` reports no installed Python; Python 3.10 lacks pytest and the backend dependencies.
+- Backend Regression: PASSED — Python 3.12 (`C:\Users\SUDHAN D\AppData\Local\Programs\Python\Python312\python.exe -m pytest backend/app/tests/ -v --tb=short`) passed with 84 passed, 0 failed in 95.57s.
 
-**Outstanding defects from this task:** None.
-**Next task:** Complete the required Sprint-2 backend regression suite once Python 3.12 and the root requirements are installed; only then mark Sprint-2 DONE and begin Sprint-3.
+**Outstanding defects from this sprint:** None.
+**Next task:** Sprint-3 Task 3.1 — Guided 4-step daily planning flow, constraints display, and baseline consolidation (ALLOC-001, ALLOC-004, M-03, M-04). Follow `docs/remediation/SPRINTS/SPRINT-03.md`.

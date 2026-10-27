@@ -1,6 +1,6 @@
 # Sprint-2 — Data Integrity, Institution Persistence, Metric Canonicalization
 
-**Status:** IN PROGRESS (implementation complete; final backend regression verification blocked by missing Python 3.12 runtime)<br>
+**Status:** DONE<br>
 **Prerequisite:** Sprint-1 DONE (navigation shell exists).<br>
 **Objective:** Every KPI card traces to a single authoritative source. Institutions persist in the database. Campus coordinates have one canonical value. Chart renders data.<br>
 **User-visible outcome:** KPI cards show real numbers from the database, not computed-from-defaults or conflicting values.
@@ -163,7 +163,7 @@ Add: if `loading`, render a skeleton. If `!loading && comparisonChartData.length
 - [x] Demand/capacity chart shows loading skeleton and empty state.
 - [x] Disaggregator raises 422 when area has no stops.
 - [x] `npm run build` and `npm run lint` clean (0 lint errors; existing warnings remain).
-- [ ] No backend tests regressed — blocked: Python 3.12 is not installed and Python 3.10 has no pytest/dependencies.
+- [x] No backend tests regressed (84 passed, 0 failed in 95.57s).
 
 ---
 
