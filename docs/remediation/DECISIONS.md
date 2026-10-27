@@ -120,15 +120,15 @@
 
 ---
 
-## ADR-012 — Seating Equity Metric Definition and Utilization Variance Calculation
+## ADR-012 — Seating Equity Metric Definition and Seat-Utilization Consistency Calculation
 
 **Date:** 2026-10-27 (Sprint-2, Task 2.5)
-**Decision:** Explicitly define seating equity as a normalized metric derived from area-level utilization variance across active geographic transit corridors (`AREA_A` through `AREA_E`). Compute utilization per area $u_i = \text{allocated\_riders}_i / \text{allocated\_capacity}_i$ for valid areas with capacity $> 0$. Compute population variance $\sigma^2 = \frac{1}{N}\sum_{i=1}^N (u_i - \bar{u})^2$, standard deviation $\sigma = \sqrt{\sigma^2}$, coefficient of variation $CV = \sigma / \bar{u}$ (or $0.0$ if $\bar{u}=0$), and seating equity percentage $\max(0.0, 1.0 - CV) \times 100.0$. Expose `seating_equity_pct`, `area_utilization_variance`, and `per_area_utilization_pct` via `GET /api/workflow/operational-manifest`.
+**Decision:** Explicitly define seating equity as seat-utilization consistency derived from area-level utilization variance across active geographic transit corridors (`AREA_A` through `AREA_E`). Compute utilization per area $u_i = \text{allocated\_riders}_i / \text{allocated\_capacity}_i$ for valid areas with capacity $> 0$ and demand $\ge 0$. Compute population variance $\sigma^2 = \frac{1}{N}\sum_{i=1}^N (u_i - \bar{u})^2$, standard deviation $\sigma = \sqrt{\sigma^2}$, coefficient of variation $CV = \sigma / \bar{u}$ (defined only when $\bar{u} > 0$), and consistency percentage $\max(0.0, 1.0 - CV) \times 100.0$. Expose `seating_equity_pct`, `area_utilization_variance`, `per_area_utilization_pct`, and `equity_status` via `GET /api/workflow/operational-manifest`.
 **Rationale:** Resolves DATA-003. The frontend previously hardcoded `"100% seating equity achieved"` whenever standing passengers equaled zero, conflating zero standing commuters with equitable seat allocation across corridors.
 **Consequence:**
-- Replaces hardcoded string in `OfficeOverview.jsx` and `OfficeDashboard.jsx` with computed `${manifestData.seating_equity_pct}% seating equity achieved`.
-- Areas with zero capacity are excluded from variance calculation to prevent division-by-zero.
-- Empty datasets or zero total capacity default safely to `0.0` equity and `0.0` variance.
-- Equal utilization across corridors yields $0.0$ variance and $100.0\%$ equity.
+- Replaces misleading "equity achieved" phrase in `OfficeOverview.jsx` and `OfficeDashboard.jsx` with precise `${manifestData.seating_equity_pct}% seat-utilization consistency` (or `"Seat-utilization consistency unavailable"` when undefined).
+- When data cannot support meaningful comparison (empty dataset $N=0$, single area $N=1$, or zero demand $\bar{u}=0$ across all areas), metric returns `None` and an explicit `equity_status` (`"UNAVAILABLE"`, `"INSUFFICIENT_AREAS"`, `"ZERO_DEMAND"`) rather than fabricating a reassuring 100% score.
+- Multiple-leg route vehicle capacity is deduplicated by bus ID to prevent artificial capacity inflation.
+- Equal non-zero utilization across corridors yields $0.0$ variance and $100.0\%$ consistency.
 - Zero variance proves equal measured utilization under the defined formula; it does not conflate with unconstrained capacity adequacy or total student satisfaction.
-**Status:** Implemented and verified in Sprint-2 Task 2.5.
+**Status:** Implemented, audited, and verified in Sprint-2 Task 2.5.

@@ -197,7 +197,18 @@ def get_operational_manifest(
     for a in AREAS_CONFIG.keys():
         a_manifest = [m for m in manifest if m.get("area_id") == a]
         a_riders = sum(m.get("allocated_riders", 0) for m in a_manifest)
-        a_capacity = sum(m.get("capacity", capacity) for m in a_manifest)
+        # Deduplicate bus capacity by bus_code to prevent multi-leg vehicle double counting
+        seen_buses = set()
+        a_capacity = 0
+        for m in a_manifest:
+            b_code = m.get("bus_code")
+            b_cap = m.get("capacity", capacity)
+            if b_code:
+                if b_code not in seen_buses:
+                    seen_buses.add(b_code)
+                    a_capacity += b_cap
+            else:
+                a_capacity += b_cap
         area_metrics[a] = {"riders": a_riders, "capacity": a_capacity}
 
     equity_res = compute_seating_equity(area_metrics)
@@ -214,6 +225,7 @@ def get_operational_manifest(
         "seating_equity_pct": equity_res["seating_equity_pct"],
         "area_utilization_variance": equity_res["area_utilization_variance"],
         "per_area_utilization_pct": equity_res["per_area_utilization_pct"],
+        "equity_status": equity_res.get("equity_status", "VALID"),
         "total_standing": alloc_res.get("total_standing", 0),
         "total_empty": alloc_res.get("total_empty", 0),
         "churn": alloc_res.get("total_churn", 0),

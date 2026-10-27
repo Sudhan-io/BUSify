@@ -160,7 +160,7 @@ Add: if `loading`, render a skeleton. If `!loading && comparisonChartData.length
 - [ ] Demand/capacity chart shows loading skeleton and empty state.
 - [ ] Disaggregator raises 422 when area has no stops.
 - [x] `npm run build` and `npm run lint` clean.
-- [x] No backend tests regressed (72 passed).
+- [x] No backend tests regressed (75 passed).
 
 ---
 

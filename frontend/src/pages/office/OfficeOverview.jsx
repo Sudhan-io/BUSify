@@ -120,7 +120,9 @@ export default function OfficeOverview() {
             manifestData
               ? manifestData.total_standing > 0
                 ? "Exceeds seating capacity"
-                : `${manifestData.seating_equity_pct != null ? `${manifestData.seating_equity_pct}%` : "100%"} seating equity achieved`
+                : manifestData.seating_equity_pct != null
+                  ? `${manifestData.seating_equity_pct}% seat-utilization consistency`
+                  : "Seat-utilization consistency unavailable"
               : "—"
           }
           icon={ShieldCheck}

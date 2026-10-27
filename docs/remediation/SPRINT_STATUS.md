@@ -22,7 +22,7 @@
 |:---|:---|:---|:---|:---|:---|
 | Sprint-0 | Baseline, loading states, dead code removal | **DONE** | No hardcoded fallback numbers; loading spinner renders; API errors shown inline; dead files removed; environment verified | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed, 0 failed |
 | Sprint-1 | App shell, navigation, routing | **DONE** | React Router installed; 7 office tabs navigable; student has 3 sections; existing state logic preserved | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed; Browser subagent: 7 routes + student + 404 verified |
-| Sprint-2 | Data integrity, institution persistence | **IN PROGRESS** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | None | Tasks 2.1, 2.4, 2.5 complete: SEC-001, M-02, DATA-002, DATA-003 verified; 72 tests passed |
+| Sprint-2 | Data integrity, institution persistence | **IN PROGRESS** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | None | Tasks 2.1, 2.4, 2.5 complete: SEC-001, M-02, DATA-002, DATA-003 verified; 75 tests passed |
 | Sprint-3 | Daily Planning workflow | **NOT STARTED** | Guided 4-step flow; constraint display; allocation review; no conflicting baselines | Requires Sprint-2 | — |
 | Sprint-4 | Dispatch Manifest — real buses, approval guard | **NOT STARTED** | Manifest uses DB buses/drivers; table paginated; dispatch endpoint creates Plan; button disabled without valid manifest | Requires Sprint-3 | — |
 | Sprint-5 | Fleet & Drivers + Students & Demand management | **NOT STARTED** | Fleet CRUD in dedicated page; student demand aggregation | Requires Sprint-1, Sprint-2 | — |
@@ -298,10 +298,10 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 - `docs/remediation/DECISIONS.md` (Added ADR-012)
 
 **Verification results:**
-- Focused Tests: `py -3.12 -m pytest backend/app/tests/test_sprint2_seating_equity.py -v` PASSED (7 passed in 17.46s).
-- Full Regression Suite: `py -3.12 -m pytest backend/app/tests/ -v --tb=short` PASSED (72 passed in 83.62s).
+- Focused Tests: `py -3.12 -m pytest backend/app/tests/test_sprint2_seating_equity.py -v` PASSED (10 passed in 17.19s).
+- Full Regression Suite: `py -3.12 -m pytest backend/app/tests/ -v --tb=short` PASSED (75 passed in 114.94s).
 - Frontend Lint: `npm run lint` PASSED (0 errors).
-- Frontend Build: `npm run build` PASSED (0 errors in 1.04s).
+- Frontend Build: `npm run build` PASSED (0 errors in 1.07s).
 - Code Hygiene: `git diff --check` PASSED.
 
 **Outstanding defects from this task:** None.
