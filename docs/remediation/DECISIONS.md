@@ -117,3 +117,18 @@
 - Frontend components (`LeafletMap`, `RoutesAndMap`, `OfficeDashboard`, `StudentView`, `App`) reference canonical `CANONICAL_CAMPUS_COORDINATES` and `DEFAULT_INSTITUTION` from `frontend/src/constants/institution.js`.
 - Coordinate validation enforces `-90 <= lat <= 90` and `-180 <= lng <= 180` at API boundary.
 **Status:** Implemented and verified in Sprint-2 Task 2.1.
+
+---
+
+## ADR-012 — Seating Equity Metric Definition and Utilization Variance Calculation
+
+**Date:** 2026-10-27 (Sprint-2, Task 2.5)
+**Decision:** Explicitly define seating equity as a normalized metric derived from area-level utilization variance across active geographic transit corridors (`AREA_A` through `AREA_E`). Compute utilization per area $u_i = \text{allocated\_riders}_i / \text{allocated\_capacity}_i$ for valid areas with capacity $> 0$. Compute population variance $\sigma^2 = \frac{1}{N}\sum_{i=1}^N (u_i - \bar{u})^2$, standard deviation $\sigma = \sqrt{\sigma^2}$, coefficient of variation $CV = \sigma / \bar{u}$ (or $0.0$ if $\bar{u}=0$), and seating equity percentage $\max(0.0, 1.0 - CV) \times 100.0$. Expose `seating_equity_pct`, `area_utilization_variance`, and `per_area_utilization_pct` via `GET /api/workflow/operational-manifest`.
+**Rationale:** Resolves DATA-003. The frontend previously hardcoded `"100% seating equity achieved"` whenever standing passengers equaled zero, conflating zero standing commuters with equitable seat allocation across corridors.
+**Consequence:**
+- Replaces hardcoded string in `OfficeOverview.jsx` and `OfficeDashboard.jsx` with computed `${manifestData.seating_equity_pct}% seating equity achieved`.
+- Areas with zero capacity are excluded from variance calculation to prevent division-by-zero.
+- Empty datasets or zero total capacity default safely to `0.0` equity and `0.0` variance.
+- Equal utilization across corridors yields $0.0$ variance and $100.0\%$ equity.
+- Zero variance proves equal measured utilization under the defined formula; it does not conflate with unconstrained capacity adequacy or total student satisfaction.
+**Status:** Implemented and verified in Sprint-2 Task 2.5.

@@ -376,7 +376,13 @@ export default function OfficeDashboard({
         <MetricCard
           title="Standing Commuters"
           value={manifestData?.total_standing != null ? `${manifestData.total_standing}` : "—"}
-          subtitle={manifestData ? (manifestData.total_standing > 0 ? "Exceeds seating capacity" : "100% seating equity achieved") : "—"}
+          subtitle={
+            manifestData
+              ? manifestData.total_standing > 0
+                ? "Exceeds seating capacity"
+                : `${manifestData.seating_equity_pct != null ? `${manifestData.seating_equity_pct}%` : "100%"} seating equity achieved`
+              : "—"
+          }
           icon={ShieldCheck}
           tone={manifestData?.total_standing > 0 ? "coral" : (manifestData ? "sage" : "blue")}
           badge={loading ? "Checking" : (manifestData?.total_standing != null ? (manifestData.total_standing > 0 ? "Overflow" : "Guaranteed") : "Unavailable")}

@@ -108,7 +108,7 @@ Note: the endpoint currently does not receive `db` for this computation. Ensure 
 
 ---
 
-### Task 2.5 — Define seating equity and expose via API
+### Task 2.5 — Define seating equity and expose via API `[COMPLETED]`
 
 **Definition:** Seating equity = 1 minus the coefficient of variation of per-area utilization.
 - Per-area utilization: `total_riders_in_area / (allocated_buses * bus_capacity)`.
@@ -155,12 +155,12 @@ Add: if `loading`, render a skeleton. If `!loading && comparisonChartData.length
 
 - [x] Institution list persists through backend restart.
 - [x] `total_seats_deployed` equals actual sum of active bus seats.
-- [ ] `seating_equity_pct` field present in manifest response.
+- [x] `seating_equity_pct` field present in manifest response.
 - [x] Campus coordinates: all map components use `activeInstitution` props, not hardcoded literals.
 - [ ] Demand/capacity chart shows loading skeleton and empty state.
 - [ ] Disaggregator raises 422 when area has no stops.
 - [x] `npm run build` and `npm run lint` clean.
-- [x] No backend tests regressed (65 passed).
+- [x] No backend tests regressed (72 passed).
 
 ---
 

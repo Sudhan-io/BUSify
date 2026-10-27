@@ -15,6 +15,7 @@ from backend.app.models.registration import Registration
 from backend.app.models.student_attendance import StudentAttendance
 from backend.app.core.forecasting.lightgbm_model import forecaster
 from backend.app.core.allocation.optimizer import fleet_allocator
+from backend.app.core.allocation.equity import compute_seating_equity
 from backend.app.core.routing.vrp_solver import vrp_solver
 from backend.app.core.routing.road_geometry_service import road_geometry_service
 from backend.app.core.forecasting.disaggregator import disaggregate_area_demand
@@ -191,6 +192,16 @@ def get_operational_manifest(
     total_riders = sum(m["allocated_riders"] for m in manifest)
     overall_utilization_pct = round(total_riders / deployed_seats * 100, 1) if deployed_seats > 0 else 0.0
 
+    # Calculate per-area demand and allocated seat capacity for seating equity (resolves DATA-003)
+    area_metrics = {}
+    for a in AREAS_CONFIG.keys():
+        a_manifest = [m for m in manifest if m.get("area_id") == a]
+        a_riders = sum(m.get("allocated_riders", 0) for m in a_manifest)
+        a_capacity = sum(m.get("capacity", capacity) for m in a_manifest)
+        area_metrics[a] = {"riders": a_riders, "capacity": a_capacity}
+
+    equity_res = compute_seating_equity(area_metrics)
+
     return {
         "date": target_date,
         "scenario": scenario,
@@ -200,6 +211,9 @@ def get_operational_manifest(
         "total_seats_deployed": deployed_seats,
         "total_expected_riders": total_riders,
         "overall_utilization_pct": overall_utilization_pct,
+        "seating_equity_pct": equity_res["seating_equity_pct"],
+        "area_utilization_variance": equity_res["area_utilization_variance"],
+        "per_area_utilization_pct": equity_res["per_area_utilization_pct"],
         "total_standing": alloc_res.get("total_standing", 0),
         "total_empty": alloc_res.get("total_empty", 0),
         "churn": alloc_res.get("total_churn", 0),

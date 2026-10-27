@@ -22,7 +22,7 @@
 |:---|:---|:---|:---|:---|:---|
 | Sprint-0 | Baseline, loading states, dead code removal | **DONE** | No hardcoded fallback numbers; loading spinner renders; API errors shown inline; dead files removed; environment verified | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed, 0 failed |
 | Sprint-1 | App shell, navigation, routing | **DONE** | React Router installed; 7 office tabs navigable; student has 3 sections; existing state logic preserved | None | Build: 0 errors; Lint: 0 errors; Pytest: 52 passed; Browser subagent: 7 routes + student + 404 verified |
-| Sprint-2 | Data integrity, institution persistence | **IN PROGRESS** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | None | Tasks 2.1 & 2.4 complete: SEC-001, M-02, DATA-002 verified; 65 tests passed |
+| Sprint-2 | Data integrity, institution persistence | **IN PROGRESS** | KPI sources canonical; institution DB-persisted; campus coords deduped; chart renders data | None | Tasks 2.1, 2.4, 2.5 complete: SEC-001, M-02, DATA-002, DATA-003 verified; 72 tests passed |
 | Sprint-3 | Daily Planning workflow | **NOT STARTED** | Guided 4-step flow; constraint display; allocation review; no conflicting baselines | Requires Sprint-2 | — |
 | Sprint-4 | Dispatch Manifest — real buses, approval guard | **NOT STARTED** | Manifest uses DB buses/drivers; table paginated; dispatch endpoint creates Plan; button disabled without valid manifest | Requires Sprint-3 | — |
 | Sprint-5 | Fleet & Drivers + Students & Demand management | **NOT STARTED** | Fleet CRUD in dedicated page; student demand aggregation | Requires Sprint-1, Sprint-2 | — |
@@ -129,14 +129,14 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 
 **Objective:** Make every KPI authoritative. Persist institution registry. Canonicalize campus coordinates.
 
-**Status:** IN PROGRESS (Task 2.1 Complete; Tasks 2.4-2.7 Pending)
+**Status:** IN PROGRESS (Tasks 2.1, 2.4, 2.5 Complete; Tasks 2.6-2.7 Pending)
 
 **Key tasks:**
 1. [x] Persist `INSTITUTIONS_REGISTRY` to a DB table (SEC-001 / C-04) — *Task 2.1 complete*.
 2. [x] Canonical campus coordinates: extract to a single constant consumed by all components (M-02) — *Task 2.1 complete*.
 3. [x] `total_seats_deployed`: use `sum(bus.seats for active buses)` not `len(manifest) * DEFAULT_BUS_CAPACITY` (DATA-002) — *Task 2.4 complete*.
-4. [ ] Define seating equity metric explicitly; compute per-area utilization variance; expose it from the API (DATA-003) — *Next: Task 2.5*.
-5. [ ] Disaggregator zero-division guard (DATA-004 / H-11) — *Task 2.6*.
+4. [x] Define seating equity metric explicitly; compute per-area utilization variance; expose it from the API (DATA-003) — *Task 2.5 complete*.
+5. [ ] Disaggregator zero-division guard (DATA-004 / H-11) — *Next: Task 2.6*.
 6. [ ] Demand/capacity bar chart: render loading and empty states; verify `forecastData` shape matches bar keys (M-15) — *Task 2.7*.
 
 ---
@@ -274,3 +274,35 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 
 **Outstanding defects from this task:** None.
 **Next task for next session:** Sprint-2 Task 2.5 — Define seating equity metric explicitly; compute per-area utilization variance; expose it from the API (DATA-003). Follow `docs/remediation/SPRINTS/SPRINT-02.md`.
+
+---
+
+## Handoff Note — Sprint-2 Task 2.5 — 2026-10-27
+
+**Completed tasks:**
+- **Task 2.5 (DATA-003):** Defined seating equity metric and implemented area-level utilization variance computation in `backend/app/core/allocation/equity.py`. Calculated population variance $\sigma^2$, standard deviation $\sigma$, coefficient of variation $CV = \sigma / \bar{u}$, and seating equity percentage $\max(0.0, 1.0 - CV) \times 100.0$ across active transit areas with positive allocated capacity.
+- **Workflow API Integration:** Integrated `compute_seating_equity` into `get_operational_manifest` in `backend/app/api/routes_workflow.py`. Exposed `seating_equity_pct`, `area_utilization_variance`, and `per_area_utilization_pct` in API response payload.
+- **Frontend Subtitle Correction:** Replaced misleading hardcoded `"100% seating equity achieved"` in `frontend/src/pages/office/OfficeOverview.jsx` and `frontend/src/views/OfficeDashboard.jsx` with computed `${manifestData.seating_equity_pct}% seating equity achieved`.
+- **Testing:** Added 7 focused tests in `backend/app/tests/test_sprint2_seating_equity.py` covering known utilization variance, zero-variance on equal load, empty/single-area handling, zero-capacity safety, demand asymmetry, manifest API field validation, and dynamic scenario recalibration.
+
+**Modified files:**
+- `backend/app/core/allocation/equity.py` (New seating equity computation module)
+- `backend/app/core/allocation/__init__.py` (Export `compute_seating_equity`)
+- `backend/app/api/routes_workflow.py` (Integrated area equity into operational manifest endpoint)
+- `backend/app/tests/test_sprint2_seating_equity.py` (New 7 focused tests)
+- `frontend/src/pages/office/OfficeOverview.jsx` (Dynamic seating equity subtitle)
+- `frontend/src/views/OfficeDashboard.jsx` (Dynamic seating equity subtitle)
+- `docs/remediation/DEFECT_REGISTER.md` (DATA-003 moved to DONE)
+- `docs/remediation/SPRINTS/SPRINT-02.md` (Task 2.5 marked COMPLETED)
+- `docs/remediation/SPRINT_STATUS.md` (Task 2.5 updated)
+- `docs/remediation/DECISIONS.md` (Added ADR-012)
+
+**Verification results:**
+- Focused Tests: `py -3.12 -m pytest backend/app/tests/test_sprint2_seating_equity.py -v` PASSED (7 passed in 17.46s).
+- Full Regression Suite: `py -3.12 -m pytest backend/app/tests/ -v --tb=short` PASSED (72 passed in 83.62s).
+- Frontend Lint: `npm run lint` PASSED (0 errors).
+- Frontend Build: `npm run build` PASSED (0 errors in 1.04s).
+- Code Hygiene: `git diff --check` PASSED.
+
+**Outstanding defects from this task:** None.
+**Next task for next session:** Sprint-2 Task 2.6 — Disaggregator zero-division guard in `disaggregator.py:108` (DATA-004 / H-11). Follow `docs/remediation/SPRINTS/SPRINT-02.md`.
