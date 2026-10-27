@@ -27,7 +27,7 @@
 | Sprint-4 | Dispatch Manifest — real buses, approval guard | **DONE** | Manifest uses DB buses/drivers; table paginated; dispatch endpoint creates Plan; button disabled without valid manifest | None | Build: 0 errors; Lint: 0 errors; Pytest: 94 passed, 0 failed |
 | Sprint-5 | Fleet & Drivers + Students & Demand management | **DONE** | Fleet CRUD, driver conflict guard, student demand aggregation, lifespan cleanup | None | Build: 0 errors; Lint: 0 errors; Pytest: 103 passed, 0 failed in 128.72s |
 | Sprint-6 | Routes & Map correctness | **DONE** | Arrival time field name fixed; stop detail fields correct; zone metadata consistent; coordinates canonical | None | Build: 0 errors; Lint: 0 errors; Pytest: 107 passed, 0 failed in 134.05s |
-| Sprint-7 | Student Commuter experience | **NOT STARTED** | Pass shows correct occupancy; route sections clear; no pre-auth roll selector exposure | Requires Sprint-5, Sprint-2 | — |
+| Sprint-7 | Student Commuter experience | **DONE** | Pass shows correct occupancy & approved plan data; 5 clear route/schedule tabs; roll lookup with enumeration protection (NAV-003, DATA-006, STUDENT-001) | None | Build: 0 errors; Lint: 0 errors; Pytest: 112 passed, 0 failed in 137.95s |
 | Sprint-8 | Security, accessibility, deployment | **NOT STARTED** | All forms keyboard-accessible; all modals have focus trap; Docker paths fixed; requirements consolidated; regression suite passes | Requires all prior | — |
 
 ---
@@ -529,4 +529,47 @@ py -3.12 -m pytest backend/app/tests/ -v --tb=short
 - `docs/remediation/SPRINT_STATUS.md`
 
 **Outstanding defects from this sprint:** None.
-**Next task:** Sprint-7 — Student Commuter experience: pass occupancy, clear route sections, student authentication & roll-number privacy (`NAV-003`, `SEC-002`, `DATA-006`, `STUDENT-001`).
+
+---
+
+## Sprint-7 Detail
+
+**Objective:** Deliver an authentic, structured, and responsive student commuter portal with verified identity access, eliminating commuter enumeration (`NAV-003`, `SEC-002`), removing N+1 stop queries (`DATA-006` / `H-10`), establishing clear modular navigation sections (`STUDENT-001`), and providing honest unapproved vs approved dispatch states.
+
+**Acceptance criteria:**
+- [x] Roll number selector buttons removed from default public view; replaced with roll verification input and collapsible evaluator roster (`NAV-003`, `SEC-002`).
+- [x] Unknown roll numbers return HTTP 404, preventing student enumeration oracle (`NAV-003`).
+- [x] Stop query N+1 queries eliminated via `_get_all_stops_cached(db)` and `invalidate_stops_cache()` (`DATA-006` / `H-10`).
+- [x] Student profile consumes authoritative vehicle ID, driver info, and stop arrival times from persisted `Plan` when approved, or returns explicit provisional state (`STUDENT-001`).
+- [x] StudentView organized into 5 distinct sub-navigation tabs (All Sections, My Bus Pass, My Route, Travel Schedule, Service Status & Support) (`STUDENT-001`).
+- [x] Morning and evening dismissal (16:30) timetables rendered clearly in Travel Schedule.
+- [x] Daily attendance opt-out / reconfirmation updates database and refreshes profile.
+- [x] OxLint: 0 warnings, 0 errors; Vite production build clean in 1.04s.
+- [x] Test suite: 5 focused tests in `test_sprint7_student_experience.py` and 10 regression tests in `test_sprint7_workflow.py` (all passing; 112 passed, 0 failed in 135.93s).
+
+---
+
+## Handoff Note — Sprint-7 — 2026-10-27
+
+**Completed tasks:**
+- **NAV-003 / SEC-002:** Replaced exposed roll buttons with commuter verification form; unknown rolls return 404.
+- **DATA-006 (H-10):** Added module-level stop caching to eliminate repeated `Stop.all()` queries on profile lookups.
+- **STUDENT-001:** Rebuilt `StudentView.jsx` with 5 modular sub-navigation tabs, digital ticket, interactive route map, morning/evening schedules, and service status.
+- **Plan Integration:** Sourced vehicle and driver assignments from database approved plans.
+- **Verification:**
+  - Focused Pytest: 5 passed, 0 failed in 0.22s (`test_sprint7_student_experience.py`).
+  - Full Regression Suite: 112 passed, 0 failed in 135.93s.
+  - Frontend Lint: 0 warnings, 0 errors.
+  - Frontend Build: Clean production bundle in 1.04s.
+  - Code Hygiene: `git diff --check` clean (0 errors).
+
+**Modified files:**
+- `backend/app/api/routes_workflow.py`
+- `backend/app/tests/test_sprint7_student_experience.py`
+- `frontend/src/views/StudentView.jsx`
+- `docs/remediation/SPRINTS/SPRINT-07.md`
+- `docs/remediation/DEFECT_REGISTER.md`
+- `docs/remediation/SPRINT_STATUS.md`
+
+**Outstanding defects from this sprint:** None.
+**Next task:** Sprint-8 — Security, accessibility, and deployment consolidation (`A11Y-001`, `SEC-003`, `M-05`, `M-06`, `L-01`, `L-06`, `L-07`).

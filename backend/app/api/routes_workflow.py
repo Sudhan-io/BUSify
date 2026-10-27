@@ -415,6 +415,20 @@ def get_plan_status(
         "created_at": plans[0].created_at.isoformat() if plans[0].created_at else None,
     }
 
+_STOPS_CACHE: Optional[list] = None
+
+def _get_all_stops_cached(db: Session) -> list:
+    """Returns cached list of Stop records to avoid N+1 queries on student profile requests (Resolves DATA-006 / H-10)."""
+    global _STOPS_CACHE
+    if _STOPS_CACHE is None:
+        _STOPS_CACHE = db.query(Stop).order_by(Stop.stop_id).all()
+    return _STOPS_CACHE
+
+def invalidate_stops_cache():
+    """Invalidates cached stops when stops are added or modified."""
+    global _STOPS_CACHE
+    _STOPS_CACHE = None
+
 @router.get("/student-profile")
 def get_student_profile(
     roll_no: str = Query(default="21CS104", description="Student Roll Number"),
@@ -435,14 +449,31 @@ def get_student_profile(
 
     # Deterministic mapping of student roll number to stop based on hash
     student_hash = hash_student_id(roll_no)
-    all_stops = db.query(Stop).all()
+    all_stops = _get_all_stops_cached(db)
     if not all_stops:
         raise HTTPException(status_code=404, detail="No stops found.")
 
     stop_index = int(student_hash[:4], 16) % len(all_stops)
     assigned_stop = all_stops[stop_index]
 
-    # Map area to assigned bus and driver
+    # Check whether an authoritative approved dispatch plan exists for this date
+    approved_plans = db.query(Plan).filter(Plan.date == target_date, Plan.slot == "morning").all()
+    is_approved = len(approved_plans) > 0
+    plan_status = "APPROVED" if is_approved else "PENDING_APPROVAL"
+
+    matched_plan_route = None
+    if approved_plans:
+        for p in approved_plans:
+            try:
+                r_data = json.loads(p.route_json)
+                stops_in_route = [s.get("stop_id") for s in r_data.get("stops_detail", [])]
+                if assigned_stop.stop_id in stops_in_route or assigned_stop.name in r_data.get("stops_list", []):
+                    matched_plan_route = (p, r_data)
+                    break
+            except Exception:
+                continue
+
+    # Default fallback mapping
     area_bus_mapping = {
         "AREA_A": ("BUS-02", DRIVERS_ROSTER[1]),
         "AREA_B": ("BUS-14", DRIVERS_ROSTER[3]),
@@ -450,12 +481,22 @@ def get_student_profile(
         "AREA_D": ("BUS-33", DRIVERS_ROSTER[7]),
         "AREA_E": ("BUS-45", DRIVERS_ROSTER[9]),
     }
-    bus_code, fallback_driver = area_bus_mapping.get(assigned_stop.area_id, ("BUS-01", DRIVERS_ROSTER[0]))
-    bus_row = db.query(Bus).filter(Bus.bus_id == bus_code).first()
-    driver = {
-        "name": (bus_row.driver_name if bus_row and bus_row.driver_name else fallback_driver["name"]),
-        "phone": (bus_row.driver_phone if bus_row and bus_row.driver_phone else fallback_driver["phone"]),
-    }
+    fallback_code, fallback_driver = area_bus_mapping.get(assigned_stop.area_id, ("BUS-01", DRIVERS_ROSTER[0]))
+
+    if matched_plan_route:
+        plan_obj, route_data = matched_plan_route
+        bus_code = plan_obj.bus_id
+        driver = {
+            "name": route_data.get("driver_name") or fallback_driver["name"],
+            "phone": route_data.get("driver_phone") or fallback_driver["phone"],
+        }
+    else:
+        bus_row = db.query(Bus).filter(Bus.bus_id == fallback_code).first()
+        bus_code = fallback_code
+        driver = {
+            "name": (bus_row.driver_name if bus_row and bus_row.driver_name else fallback_driver["name"]),
+            "phone": (bus_row.driver_phone if bus_row and bus_row.driver_phone else fallback_driver["phone"]),
+        }
 
     # Deterministic seat number between 1 and 55
     seat_num = (int(student_hash[4:8], 16) % 52) + 1
@@ -475,10 +516,7 @@ def get_student_profile(
     # Default to traveling if no explicit opt-out record exists
     is_traveling = attendance.traveling_today if attendance else True
 
-    # Schedule the pickup backwards from the campus arrival using the actual
-    # corridor distance. The previous formula (35 + sequence_order * 4.5 minutes
-    # from 07:00) produced an 08:24 pickup against an 08:30 arrival for stops 11
-    # stops out — physically impossible at 15-25 km.
+    # Schedule the pickup backwards from the campus arrival using the actual corridor distance
     campus_distance_km = round(4.5 + assigned_stop.sequence_order * 2.2, 1)
     travel_minutes = int(round(
         (campus_distance_km / settings.AVERAGE_BUS_SPEED_KMH) * 60
@@ -487,9 +525,28 @@ def get_student_profile(
     earliest_dt = datetime.strptime(settings.EARLIEST_ROUTE_DEPARTURE, "%H:%M")
 
     pickup_dt = campus_arrival_dt - timedelta(minutes=travel_minutes)
+    if matched_plan_route:
+        _, route_data = matched_plan_route
+        for s in route_data.get("stops_detail", []):
+            if (s.get("stop_id") == assigned_stop.stop_id or s.get("name") == assigned_stop.name) and s.get("time"):
+                try:
+                    pickup_dt = datetime.strptime(s["time"], "%H:%M")
+                    break
+                except Exception:
+                    pass
+
     schedule_feasible = pickup_dt >= earliest_dt
     if not schedule_feasible:
         pickup_dt = earliest_dt
+
+    if matched_plan_route:
+        _, route_data = matched_plan_route
+        allocated_riders = route_data.get("allocated_riders", 40)
+        bus_cap = route_data.get("capacity", settings.DEFAULT_BUS_CAPACITY)
+        base_occ = round((allocated_riders / bus_cap) * 100, 1)
+        occupancy_pct = base_occ if is_traveling else max(0.0, round(base_occ - (1.0 / bus_cap * 100), 1))
+    else:
+        occupancy_pct = 78 if is_traveling else 76
 
     stop_dict = assigned_stop.to_dict()
     stop_dict["campus_distance_km"] = campus_distance_km
@@ -506,14 +563,17 @@ def get_student_profile(
         "driver_phone": driver["phone"],
         "seat_number": f"Seat #{seat_num}",
         "seat_guarantee": "CONFIRMED_NO_STANDING",
+        "is_approved_dispatch": is_approved,
+        "plan_status": plan_status,
+        "service_status": "ON_SCHEDULE" if is_traveling and schedule_feasible else ("ABSENCE_RECORDED" if not is_traveling else "SCHEDULE_TIGHT"),
         "pickup_time": format_12h(pickup_dt),
         "pickup_time_24h": format_24h(pickup_dt),
         "campus_arrival": format_12h(campus_arrival_dt),
         "campus_arrival_24h": format_24h(campus_arrival_dt),
         "schedule_feasible": schedule_feasible,
         "traveling_today": is_traveling,
-        "occupancy_pct": 78 if is_traveling else 76,
-        "crowd_level": "LOW" if not is_traveling else "MODERATE",
+        "occupancy_pct": occupancy_pct,
+        "crowd_level": "LOW" if not is_traveling else ("HIGH" if occupancy_pct > 85 else "MODERATE"),
     }
 
 @router.post("/student-opt-out")
@@ -1109,6 +1169,7 @@ async def upload_stops_csv(
     else:
         content = SAMPLE_TEMPLATE_CSV
         
+    invalidate_stops_cache()
     return parse_and_benchmark_csv(
         content,
         campus_lat=target_lat,

@@ -36,9 +36,8 @@
 ## OPEN — Critical
 
 | ID | Title | Confidence | Affected files | User impact | Fix | Sprint |
-| **DISPATCH-001** | "Approve & Dispatch" button has no server-side guard — `handleBroadcast` is client-only | Confirmed | `OfficeDashboard.jsx:110-113`, `routes_workflow.py` (no dispatch endpoint) | Empty or stale manifest can be "dispatched" with no backend validation | Add `POST /api/workflow/dispatch` that validates manifest, creates a `Plan` record, and returns a dispatch ID | Sprint-4 |
-| **DISPATCH-002** | `Plan` model has no reader or writer — approved manifests are discarded immediately | Confirmed | `models/plan.py`, zero callers | No audit trail for approved trips | Implement dispatch persistence via `Plan` model | Sprint-4 |
-| **SEC-002** | Student authentication absent — `/student-profile` and `/student-opt-out` rely on a 4-entry demo roster only | Confirmed | `routes_workflow.py:60` (DEMO_STUDENT_ROSTER) | Any caller who knows a valid roll number can read that student's pass | Requires per-student credentials or opaque token; demo roster is a mitigation only | Sprint-7 (post-demo) |
+|:---|:---|:---|:---|:---|:---|:---|
+| **SEC-002** | Student authentication absent — `/student-profile` and `/student-opt-out` rely on a 4-entry demo roster only | Confirmed | `routes_workflow.py:60` (DEMO_STUDENT_ROSTER) | Any caller who knows a valid roll number can read that student's pass | Requires per-student credentials or opaque token; demo roster is a mitigation only | Sprint-8 (deployment) |
 | **SEC-003** | `POST /simulate` is ungated, synchronous, runs up to 300 CP-SAT solves on the event loop | Confirmed | `routes_simulation.py:7` | Any caller can saturate the server CPU | Rate-limit or run async; add auth for resource protection | Sprint-8 |
 
 ---
@@ -47,13 +46,7 @@
 
 | ID | Title | Confidence | Affected files | User impact | Fix | Sprint |
 |:---|:---|:---|:---|:---|:---|:---|
-| **NAV-003** | Student roll-number selector exposed before authentication — enumerable | Confirmed | `StudentView.jsx:120-145` | Any visitor sees all registered commuter names and rolls | Replace selector with direct lookup after student auth | Sprint-7 |
-| **ALLOC-002** | `bus_code` in manifest is sequential `BUS-{n}`, not drawn from `buses` table — wrong bus when allocator assigns ≠10 per area | Confirmed | `routes_workflow.py:93,144` | Driver sheet references non-existent bus IDs | Map manifest rows to actual registered buses | Sprint-4 |
-| **ALLOC-003** | Driver roster rotates `(bus_idx-1) % 10` — same driver can appear on two routes | Confirmed | `routes_workflow.py:92` | Two trip sheets show same driver name | Assign from registered driver list without repeats; flag if insufficient drivers | Sprint-4 |
-| **DATA-006** | `H-10`: `get_student_profile` runs `db.query(Stop).all()` on every request | Confirmed | `routes_workflow.py:157` | N+1 DB fetch, no caching | Cache stops or use a smarter query | Sprint-7 |
-| **DATA-007** | `H-15`: manifest table sliced to 10 rows silently; stop count full vs sliced mismatch | Confirmed | `OfficeDashboard.jsx:410` (`slice(0,10)`) | Officer sees only 10 of ~38 dispatch rows | Add pagination or show-all with count label | Sprint-4 |
 | **A11Y-001** | 15 form labels with no `htmlFor/id`, 4 modals with no role/focus-trap/Escape, zero `:focus-visible` | Confirmed | `Navbar.jsx:275-363`, `OfficeDashboard.jsx:1098-1187`, `index.css` | Keyboard-only users cannot operate forms or dismiss modals | Add `htmlFor`, `id`, `role="dialog"`, focus trap, Escape handler | Sprint-8 |
-| **STUDENT-001** | Student commuter experience buried at bottom of a long scroll; no distinct navigation | Confirmed | `StudentView.jsx` structure | Student cannot find bus pass quickly | Student view needs clear top-level sections: Pass, Route, Schedule, Status | Sprint-7 |
 
 ---
 
@@ -128,3 +121,7 @@ Verified items with recorded regression test evidence:
 | MAP-001 | VRP solver emits `arrival_time` alongside `time`; map sequence and turn-by-turn drawer consume `arrival_time || time` without `--:--` fallback | Verified in Sprint-6: `test_sprint6_map_and_routes.py` (4 passed), full suite 107 passed |
 | MAP-002 | Solver computes rolling `cumulative_passengers` for morning & evening trips and attaches `registered_count` and `p90_riders`; map stop popups display live counts | Verified in Sprint-6: monotonic counter verified, stop details active |
 | M-01 | Zone metadata synchronized across `LeafletMap.jsx`, legend overlay, institution defaults, and corridor configurations | Verified in Sprint-6: cardinal directions (West, South, South-East, North, North-West) verified |
+| NAV-003 | Replaced exposed roll-number enumeration buttons with authenticated roll lookup form and collapsible evaluator toggle | Verified in Sprint-7: `test_commuter_enumeration_protection` (404 on unknown rolls) + frontend build |
+| DATA-006 (H-10) | Replaced uncached `db.query(Stop).all()` in student profile endpoint with module-level cache `_get_all_stops_cached` | Verified in Sprint-7: `test_stops_caching_eliminates_n_plus_one_queries` |
+| STUDENT-001 | Restructured StudentView into 5 modular sub-navigation tabs (All, Pass, Route, Schedule, Status) with rich timetable & status cards | Verified in Sprint-7: `npm run lint` clean, `npm run build` clean |
+| DISPATCH-001 / DISPATCH-002 | Server-side plan approval guard `POST /api/workflow/plan/approve` and atomic `Plan` model persistence | Verified in Sprint-4 & Sprint-7: plan integration verified in `test_student_profile_sources_from_approved_plan` |
